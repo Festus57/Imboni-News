@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6, select: false },
+    password: { type: String, required: true, minlength: 8, select: false },
     avatar: { type: String, default: '' },
     role: {
       type: String,
@@ -61,5 +61,10 @@ userSchema.pre('save', function (next) {
   this.isStaff = staffRoles.includes(this.role);
   next();
 });
+
+// Indexes for common queries
+userSchema.index({ role: 1 });
+userSchema.index({ isStaff: 1, isActive: 1 });
+userSchema.index({ email: 1 }, { unique: true }); // already set but explicit
 
 export default mongoose.model('User', userSchema);

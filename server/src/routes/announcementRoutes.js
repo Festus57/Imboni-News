@@ -5,7 +5,7 @@ import {
   deleteAnnouncement, toggleAnnouncement,
 } from '../controllers/announcementController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { isStaff } from '../middleware/roleMiddleware.js';
+import { isStaff, isEditor, isAdmin } from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 
@@ -14,9 +14,9 @@ router.get('/', getAnnouncements);
 
 // CMS
 router.get('/cms', protect, isStaff, getCmsAnnouncements);
-router.post('/', protect, isStaff, createAnnouncement);
-router.put('/:id', protect, isStaff, updateAnnouncement);
-router.delete('/:id', protect, isStaff, deleteAnnouncement);
-router.patch('/:id/toggle', protect, isStaff, toggleAnnouncement);
+router.post('/', protect, isEditor, createAnnouncement);
+router.put('/:id', protect, isEditor, updateAnnouncement);
+router.delete('/:id', protect, isAdmin, deleteAnnouncement);
+router.patch('/:id/toggle', protect, isEditor, toggleAnnouncement);
 
 export default router;

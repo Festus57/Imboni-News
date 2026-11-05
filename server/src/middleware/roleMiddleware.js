@@ -21,3 +21,5 @@ export const isAdmin = authorize('super_admin', 'admin');
 export const isSuperAdmin = authorize('super_admin');
 export const isAdManager = authorize('super_admin', 'admin', 'ad_manager');
 export const isVideoEditor = authorize('super_admin', 'admin', 'video_editor', 'editor');
+
+export const isArticleCreator = authorize('super_admin', 'admin', 'editor', 'journalist');

@@ -1,4 +1,6 @@
 import Category from '../models/Category.js';
+import Article from '../models/Article.js';
+import Video from '../models/Video.js';
 import { generateUniqueSlug } from '../utils/generateSlug.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
@@ -33,7 +35,10 @@ export const createCategory = async (req, res, next) => {
 // @access Admin+
 export const updateCategory = async (req, res, next) => {
   try {
-    const category = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const allowed = ['name', 'nameKiny', 'description', 'icon', 'color', 'parent', 'order', 'isActive'];
+    const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => allowed.includes(key)));
+    if (updates.name && updates.name !== (await Category.findById(req.params.id).select('name'))?.name) updates.slug = await generateUniqueSlug(updates.name, Category, req.params.id);
+    const category = await Category.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true, runValidators: true });
     if (!category) return sendError(res, 'Category not found.', 404);
     sendSuccess(res, { category }, 'Category updated.');
   } catch (err) {
@@ -46,7 +51,13 @@ export const updateCategory = async (req, res, next) => {
 // @access Admin+
 export const deleteCategory = async (req, res, next) => {
   try {
-    await Category.findByIdAndDelete(req.params.id);
+    const category = await Category.findById(req.params.id);
+    if (!category) return sendError(res, 'Category not found.', 404);
+    const [articleExists, videoExists, childExists] = await Promise.all([
+      Article.exists({ category: category._id }), Video.exists({ category: category._id }), Category.exists({ parent: category._id }),
+    ]);
+    if (articleExists || videoExists || childExists) return sendError(res, 'This category is in use. Deactivate it instead of deleting it.', 409);
+    await category.deleteOne();
     sendSuccess(res, {}, 'Category deleted.');
   } catch (err) {
     next(err);

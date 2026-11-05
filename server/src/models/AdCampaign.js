@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const adCampaignSchema = new mongoose.Schema(
   {
     advertiser: { type: mongoose.Schema.Types.ObjectId, ref: 'Advertiser', required: true },
+    sourceRequest: { type: mongoose.Schema.Types.ObjectId, ref: 'AdRequest', unique: true, sparse: true },
     name: { type: String, required: true, trim: true },
     package: {
       type: String,
@@ -19,7 +20,7 @@ const adCampaignSchema = new mongoose.Schema(
     videoUrl: { type: String, default: '' },
     adContent: { type: String, default: '' },       // text content for content-type ads
     adType: { type: String, enum: ['image', 'video', 'content'], default: 'image' },
-    destinationUrl: { type: String, required: true },
+    destinationUrl: { type: String, required: true, trim: true },
     altText: { type: String, default: '' },
 
     // Scheduling
@@ -27,7 +28,7 @@ const adCampaignSchema = new mongoose.Schema(
     endDate: { type: Date, required: true },
 
     // Pricing (RWF)
-    priceRwf: { type: Number, required: true },
+    priceRwf: { type: Number, required: true, min: 1 },
 
     // Status
     status: {

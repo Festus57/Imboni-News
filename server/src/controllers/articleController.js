@@ -1,4 +1,5 @@
 import Article from '../models/Article.js';
+import User from '../models/User.js';
 import { generateUniqueSlug } from '../utils/generateSlug.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
@@ -7,18 +8,18 @@ import { sendSuccess, sendError } from '../utils/apiResponse.js';
 // @access Public
 export const getArticles = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 12;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
     const skip = (page - 1) * limit;
 
     const filter = { status: 'published' };
     if (req.query.category) filter.category = req.query.category;
     if (req.query.district) filter.district = req.query.district;
     if (req.query.province) filter.province = req.query.province;
-    if (req.query.isBreaking) filter.isBreaking = true;
-    if (req.query.isFeatured) filter.isFeatured = true;
-    if (req.query.isTrending) filter.isTrending = true;
-    if (req.query.isFactCheck) filter.isFactCheck = true;
+    if (req.query.isBreaking === 'true') filter.isBreaking = true;
+    if (req.query.isFeatured === 'true') filter.isFeatured = true;
+    if (req.query.isTrending === 'true') filter.isTrending = true;
+    if (req.query.isFactCheck === 'true') filter.isFactCheck = true;
 
     // Text search
     if (req.query.search) {
@@ -71,8 +72,8 @@ export const getArticle = async (req, res, next) => {
 // @access Staff
 export const getCmsArticles = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
 
     const filter = {};
@@ -110,6 +111,7 @@ export const getCmsArticleById = async (req, res, next) => {
       .populate('author', 'name avatar')
       .populate('category', 'name nameKiny slug');
     if (!article) return sendError(res, 'Article not found.', 404);
+    if (['journalist', 'photographer'].includes(req.user.role) && String(article.author?._id || article.author) !== String(req.user._id)) return sendError(res, 'You can only access your own articles.', 403);
     sendSuccess(res, { article });
   } catch (err) {
     next(err);
@@ -163,16 +165,21 @@ export const updateArticle = async (req, res, next) => {
       return sendError(res, 'Not authorized to edit this article.', 403);
     }
 
-    // Re-generate slug only if title changed
-    if (req.body.title && req.body.title !== article.title) {
-      req.body.slug = await generateUniqueSlug(req.body.title, Article, article._id);
+    const editableFields = [
+      'title', 'titleKiny', 'summary', 'summaryKiny', 'content', 'contentKiny',
+      'category', 'tags', 'district', 'province', 'isBreaking', 'isFeatured',
+      'isFactCheck', 'featuredImage', 'featuredImageCaption', 'audioUrl',
+      'videoUrl', 'videoType', 'scheduledAt',
+    ];
+    const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => editableFields.includes(key)));
+    if (updates.title && updates.title !== article.title) {
+      updates.slug = await generateUniqueSlug(updates.title, Article, article._id);
     }
+    if (updates.content !== undefined) updates.readTime = Math.max(1, Math.ceil(String(updates.content).split(/\s+/).filter(Boolean).length / 200));
+    if (updates.audioUrl !== undefined) updates.hasAudio = Boolean(updates.audioUrl);
+    if (updates.videoUrl !== undefined) updates.hasVideo = Boolean(updates.videoUrl);
 
-    if (req.body.content) {
-      req.body.readTime = Math.ceil(req.body.content.split(' ').length / 200);
-    }
-
-    const updated = await Article.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const updated = await Article.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true, runValidators: true });
     sendSuccess(res, { article: updated }, 'Article updated.');
   } catch (err) {
     next(err);
@@ -189,6 +196,7 @@ export const submitForReview = async (req, res, next) => {
     if (article.author.toString() !== req.user._id.toString()) {
       return sendError(res, 'Not your article.', 403);
     }
+    if (!['draft', 'rejected'].includes(article.status)) return sendError(res, 'Only draft or rejected articles can be submitted for review.', 409);
     article.status = 'pending_review';
     await article.save();
     sendSuccess(res, { article }, 'Submitted for review.');
@@ -204,6 +212,7 @@ export const publishArticle = async (req, res, next) => {
   try {
     const article = await Article.findById(req.params.id);
     if (!article) return sendError(res, 'Article not found.', 404);
+    if (!['pending_review', 'draft', 'approved'].includes(article.status)) return sendError(res, 'Only drafts or reviewed articles can be published.', 409);
     article.status = 'published';
     article.publishedAt = new Date();
     article.reviewedBy = req.user._id;
@@ -222,6 +231,7 @@ export const rejectArticle = async (req, res, next) => {
   try {
     const article = await Article.findById(req.params.id);
     if (!article) return sendError(res, 'Article not found.', 404);
+    if (article.status !== 'pending_review') return sendError(res, 'Only articles awaiting review can be rejected.', 409);
     article.status = 'rejected';
     article.rejectionReason = req.body.reason || '';
     article.reviewedBy = req.user._id;
@@ -240,6 +250,11 @@ export const deleteArticle = async (req, res, next) => {
   try {
     const article = await Article.findByIdAndDelete(req.params.id);
     if (!article) return sendError(res, 'Article not found.', 404);
+    // Clean up saved references in all users
+    await User.updateMany(
+      { savedArticles: article._id },
+      { $pull: { savedArticles: article._id } }
+    );
     sendSuccess(res, {}, 'Article deleted.');
   } catch (err) {
     next(err);
@@ -251,17 +266,19 @@ export const deleteArticle = async (req, res, next) => {
 // @access Reader+
 export const toggleSaveArticle = async (req, res, next) => {
   try {
-    const User = (await import('../models/User.js')).default;
     const user = await User.findById(req.user._id);
+    if (!user) return sendError(res, 'User not found.', 404);
     const articleId = req.params.id;
-    const alreadySaved = user.savedArticles.includes(articleId);
+    // Verify article exists before saving
+    const exists = await Article.exists({ _id: articleId });
+    if (!exists) return sendError(res, 'Article not found.', 404);
 
+    const alreadySaved = user.savedArticles.some((id) => id.toString() === articleId);
     if (alreadySaved) {
-      user.savedArticles = user.savedArticles.filter((id) => id.toString() !== articleId);
+      await User.findByIdAndUpdate(req.user._id, { $pull: { savedArticles: articleId } });
     } else {
-      user.savedArticles.push(articleId);
+      await User.findByIdAndUpdate(req.user._id, { $addToSet: { savedArticles: articleId } });
     }
-    await user.save({ validateBeforeSave: false });
     sendSuccess(res, { saved: !alreadySaved }, alreadySaved ? 'Article unsaved.' : 'Article saved.');
   } catch (err) {
     next(err);

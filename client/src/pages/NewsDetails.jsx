@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { formatDistanceToNow, format } from 'date-fns';
-import { FiShare2, FiBookmark, FiEye, FiClock } from 'react-icons/fi';
+import { FiShare2, FiBookmark, FiEye, FiClock, FiSend, FiMessageSquare, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import { getArticle, toggleSave } from '../services/newsService.js';
+import { getArticle, toggleSave, getComments, postComment, deleteComment } from '../services/newsService.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import VideoPlayer from '../components/video/VideoPlayer.jsx';
 import AudioPlayer from '../components/audio/AudioPlayer.jsx';
@@ -12,6 +12,7 @@ import AdBanner from '../components/ads/AdBanner.jsx';
 import SidebarAd from '../components/ads/SidebarAd.jsx';
 import TrendingNews from '../components/news/TrendingNews.jsx';
 import Loader from '../components/common/Loader.jsx';
+import sanitizeHtml from '../utils/sanitizeHtml.js';
 
 // ─── Split raw HTML content into 3 balanced paragraphs ───────────────────────
 function ArticleBody({ content }) {
@@ -35,7 +36,7 @@ function ArticleBody({ content }) {
           <div
             key={i}
             className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: chunk }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(chunk) }}
           />
         ))}
       </div>
@@ -66,7 +67,7 @@ function ArticleBody({ content }) {
   return (
     <div
       className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
     />
   );
 }
@@ -78,6 +79,12 @@ export default function NewsDetails() {
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
 
+  // Comments state
+  const [comments, setComments]       = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [replyTo, setReplyTo]         = useState(null); // { id, name }
+  const [postingComment, setPostingComment] = useState(false);
+
   useEffect(() => {
     setLoading(true);
     getArticle(slug)
@@ -85,6 +92,8 @@ export default function NewsDetails() {
         const a = res.data.data.article;
         setArticle(a);
         if (user) setSaved(user.savedArticles?.some((s) => s._id === a._id || s === a._id));
+        // Load comments
+        getComments(a._id).then((r) => setComments(r.data.data.comments || [])).catch(() => {});
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -107,6 +116,38 @@ export default function NewsDetails() {
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success('Aderesi yakopwe!');
+    }
+  };
+
+  const handlePostComment = async (e) => {
+    e.preventDefault();
+    if (!user) { toast.error('Injira kugirango wandike igitekerezo!'); return; }
+    if (!commentText.trim()) return;
+    setPostingComment(true);
+    try {
+      await postComment({
+        article: article._id,
+        content: commentText.trim(),
+        parent: replyTo?.id || null,
+      });
+      toast.success('Igitekerezo cyawe cyakiriwe kandi giri mu gusubirwaho.');
+      setCommentText('');
+      setReplyTo(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Habaye ikosa.');
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (id) => {
+    if (!window.confirm('Urakeneye gusiba iki tekerezo?')) return;
+    try {
+      await deleteComment(id);
+      setComments((prev) => prev.filter((c) => c._id !== id));
+      toast.success('Igitekerezo cyasibwe.');
+    } catch {
+      toast.error('Gusiba byanze.');
     }
   };
 
@@ -238,6 +279,120 @@ export default function NewsDetails() {
               </div>
             </div>
           )}
+
+          {/* ── Comments Section ── */}
+          <div className="mt-10 border-t pt-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <FiMessageSquare size={20} className="text-primary" />
+              Ibitekerezo {comments.length > 0 && <span className="text-sm font-normal text-gray-400">({comments.length})</span>}
+            </h3>
+
+            {/* Post comment form */}
+            <form onSubmit={handlePostComment} className="mb-8">
+              {replyTo && (
+                <div className="flex items-center gap-2 mb-2 text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+                  <span>Subiza {replyTo.name}</span>
+                  <button type="button" onClick={() => setReplyTo(null)}
+                    className="ml-auto text-gray-400 hover:text-gray-700 text-xs">✕ Reka</button>
+                </div>
+              )}
+              <div className="flex gap-3 items-start">
+                <div className="w-9 h-9 rounded-full bg-secondary text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {user ? user.name.charAt(0).toUpperCase() : '?'}
+                </div>
+                <div className="flex-1">
+                  <textarea
+                    rows={3}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder={user ? 'Andika igitekerezo cyawe...' : 'Injira kugirango wandike igitekerezo'}
+                    disabled={!user}
+                    className="w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none disabled:bg-gray-50 disabled:text-gray-400"
+                    maxLength={1000}
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-400">{commentText.length}/1000</span>
+                    {!user ? (
+                      <Link to="/login" className="btn-primary text-xs px-4 py-1.5">
+                        Injira
+                      </Link>
+                    ) : (
+                      <button type="submit" disabled={postingComment || !commentText.trim()}
+                        className="flex items-center gap-1.5 bg-primary hover:bg-red-700 text-white text-xs px-4 py-1.5 rounded-lg font-semibold disabled:opacity-50 transition-colors">
+                        <FiSend size={13} />
+                        {postingComment ? 'Kohereza...' : 'Ohereza'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            {/* Comments list */}
+            {comments.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <FiMessageSquare size={32} className="mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">Nta bitekerezo bibonetse. Banza wandike!</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {comments.map((c) => (
+                  <div key={c._id} className="flex gap-3">
+                    <div className="w-9 h-9 rounded-full bg-secondary text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      {c.author?.name?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                      <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                        <span className="font-semibold text-sm text-gray-900">{c.author?.name}</span>
+                        <span className="text-xs text-gray-400">
+                          {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 leading-relaxed">{c.content}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        {user && (
+                          <button
+                            onClick={() => setReplyTo({ id: c._id, name: c.author?.name })}
+                            className="text-xs text-gray-400 hover:text-primary transition-colors"
+                          >
+                            ↩ Subiza
+                          </button>
+                        )}
+                        {user && (user._id === c.author?._id || user._id === c.author) && (
+                          <button onClick={() => handleDeleteComment(c._id)}
+                            className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
+                            <FiTrash2 size={11} /> Siba
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Replies */}
+                      {c.replies?.length > 0 && (
+                        <div className="mt-3 space-y-3 border-t pt-3">
+                          {c.replies.map((r) => (
+                            <div key={r._id} className="flex gap-2">
+                              <div className="w-7 h-7 rounded-full bg-accent text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                {r.author?.name?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <span className="font-semibold text-xs text-gray-900">{r.author?.name}</span>
+                                  <span className="text-xs text-gray-400">
+                                    {formatDistanceToNow(new Date(r.createdAt), { addSuffix: true })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-700 leading-relaxed">{r.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </article>
 
         {/* Sidebar */}

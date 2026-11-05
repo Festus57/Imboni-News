@@ -22,6 +22,8 @@ import StaffUsers from './pages/users/StaffUsers.jsx';
 import Readers from './pages/users/Readers.jsx';
 import Analytics from './pages/analytics/Analytics.jsx';
 import MediaLibrary from './pages/media/MediaLibrary.jsx';
+import Comments from './pages/comments/Comments.jsx';
+import NewsTips from './pages/newstips/NewsTips.jsx';
 import Loader from './components/Loader.jsx';
 
 function ProtectedRoute({ children, roles }) {
@@ -51,16 +53,18 @@ export default function App() {
         <Route path="videos/edit/:id" element={<UploadVideo />} />
         <Route path="videos/live" element={<LiveStreams />} />
         <Route path="media" element={<MediaLibrary />} />
-        <Route path="ads" element={<AdDashboard />} />
-        <Route path="ads/amatangazo" element={<Amatangazo />} />
-        <Route path="ads/advertisers" element={<Advertisers />} />
-        <Route path="ads/campaigns" element={<AdCampaigns />} />
-        <Route path="ads/requests" element={<AdRequests />} />
-        <Route path="ads/kwamamaza" element={<Kwamamaza />} />
-        <Route path="ads/invoices" element={<Invoices />} />
+        <Route path="ads" element={<ProtectedRoute roles={['super_admin','admin','ad_manager']}><AdDashboard /></ProtectedRoute>} />
+        <Route path="ads/amatangazo" element={<ProtectedRoute roles={['super_admin','admin','editor']}><Amatangazo /></ProtectedRoute>} />
+        <Route path="ads/advertisers" element={<ProtectedRoute roles={['super_admin','admin','ad_manager']}><Advertisers /></ProtectedRoute>} />
+        <Route path="ads/campaigns" element={<ProtectedRoute roles={['super_admin','admin','ad_manager']}><AdCampaigns /></ProtectedRoute>} />
+        <Route path="ads/requests" element={<ProtectedRoute roles={['super_admin','admin','ad_manager']}><AdRequests /></ProtectedRoute>} />
+        <Route path="ads/kwamamaza" element={<ProtectedRoute roles={['super_admin','admin','ad_manager']}><Kwamamaza /></ProtectedRoute>} />
+        <Route path="ads/invoices" element={<ProtectedRoute roles={['super_admin','admin','ad_manager']}><Invoices /></ProtectedRoute>} />
         <Route path="users/staff" element={<ProtectedRoute roles={['super_admin','admin']}><StaffUsers /></ProtectedRoute>} />
         <Route path="users/readers" element={<ProtectedRoute roles={['super_admin','admin']}><Readers /></ProtectedRoute>} />
         <Route path="analytics" element={<ProtectedRoute roles={['super_admin','admin']}><Analytics /></ProtectedRoute>} />
+        <Route path="comments" element={<ProtectedRoute roles={['super_admin','admin','editor']}><Comments /></ProtectedRoute>} />
+        <Route path="newstips" element={<ProtectedRoute roles={['super_admin','admin','editor','journalist']}><NewsTips /></ProtectedRoute>} />
       </Route>
     </Routes>
   );

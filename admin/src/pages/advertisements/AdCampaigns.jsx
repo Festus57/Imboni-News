@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiCheck, FiPlay, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
+import { FiPlus, FiCheck, FiPlay, FiPause, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import api from '../../services/api.js';
 import Loader from '../../components/Loader.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const PLACEMENTS = ['top_banner', 'sidebar', 'article_inline', 'homepage', 'footer', 'video_preroll', 'mobile'];
 const PACKAGES = [
-  { value: 'starter', label: 'Starter — 15,000 RWF', price: 15000 },
-  { value: 'business', label: 'Business — 45,000 RWF', price: 45000 },
-  { value: 'premium', label: 'Premium — 100,000 RWF', price: 100000 },
+  { value: 'starter', label: 'Starter', defaultPrice: 45000 },
+  { value: 'business', label: 'Business', defaultPrice: 90000 },
+  { value: 'premium', label: 'Premium', defaultPrice: 180000 },
 ];
 const EMPTY = {
   advertiser: '', name: '', package: 'business', placement: 'sidebar',
   adType: 'image',
   imageUrl: '', videoUrl: '', adContent: '',
-  destinationUrl: '', startDate: '', endDate: '', priceRwf: 45000,
+  destinationUrl: '', startDate: '', endDate: '', priceRwf: 90000,
 };
 
 export default function AdCampaigns() {
+  const { user } = useAuth();
+  const canApprove = ['super_admin', 'admin'].includes(user?.role);
   const [campaigns, setCampaigns] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +91,11 @@ export default function AdCampaigns() {
     } catch { toast.error('Byanze.'); }
   };
 
+  const handlePause = async (id) => {
+    try { await api.patch(`/ads/campaigns/${id}/pause`); toast.success('Itangazo ryahagaritswe.'); load(); }
+    catch { toast.error('Guhagarika byanze.'); }
+  };
+
   const handleActivate = async (id) => {
     try {
       await api.patch(`/ads/campaigns/${id}/activate`);
@@ -99,9 +107,18 @@ export default function AdCampaigns() {
   const handleQuickActivate = async (id) => {
     try {
       await api.patch(`/ads/campaigns/${id}/approve`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Kwemeza byanze.');
+      return;
+    }
+    try {
       await api.patch(`/ads/campaigns/${id}/activate`);
-      toast.success('Itangazo rigendera neza!'); load();
-    } catch { toast.error('Byanze.'); }
+      toast.success('Itangazo rigendera neza!');
+    } catch (err) {
+      toast.success('Campaign yemejwe; izatangira igihe cyayo nikigera.');
+    } finally {
+      load();
+    }
   };
 
   const statusColor = (s) => ({
@@ -131,7 +148,7 @@ export default function AdCampaigns() {
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-4 flex-wrap">
-        {['', 'pending', 'approved', 'active', 'expired', 'rejected'].map((s) => (
+        {['', 'pending', 'approved', 'active', 'paused', 'expired', 'rejected'].map((s) => (
           <button key={s} onClick={() => setFilter(s)}
             className={`px-3 py-1 rounded text-sm border ${filter === s ? 'bg-secondary text-white border-secondary' : 'bg-white text-gray-600 border-gray-300 hover:border-secondary'}`}>
             {s || 'Yose'} {s && `(${campaigns.filter((c) => c.status === s).length})`}
@@ -164,8 +181,8 @@ export default function AdCampaigns() {
             <div>
               <label className="label">Pacute</label>
               <select value={form.package} onChange={(e) => {
-                const pkg = PACKAGES.find((p) => p.value === e.target.value);
-                setForm({ ...form, package: e.target.value, priceRwf: pkg?.price || 0 });
+                const selectedPackage = PACKAGES.find((item) => item.value === e.target.value);
+                setForm({ ...form, package: e.target.value, priceRwf: selectedPackage?.defaultPrice || form.priceRwf });
               }} className="input">
                 {PACKAGES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
@@ -307,18 +324,23 @@ export default function AdCampaigns() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 justify-end flex-wrap">
-                    {c.status === 'pending' && (
+                    {canApprove && c.status === 'pending' && (
                       <>
                         <button onClick={() => handleApprove(c._id)} title="Emeza gusa" className="p-1.5 text-blue-500 hover:bg-blue-50 rounded">
                           <FiCheck size={15} />
                         </button>
-                        <button onClick={() => handleQuickActivate(c._id)} title="Tangira vuba" className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-1">
+                        <button onClick={() => handleQuickActivate(c._id)} title="Emeza kandi utangize niba itariki ibikwiriye" className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 flex items-center gap-1">
                           <FiPlay size={12} /> Live
                         </button>
                       </>
                     )}
-                    {c.status === 'approved' && (
-                      <button onClick={() => handleActivate(c._id)} title="Tangira" className="p-1.5 text-green-500 hover:bg-green-50 rounded">
+                    {c.status === 'active' && (
+                      <button onClick={() => handlePause(c._id)} title="Hagarika" className="p-1.5 text-orange-500 hover:bg-orange-50 rounded">
+                        <FiPause size={15} />
+                      </button>
+                    )}
+                    {['approved', 'paused'].includes(c.status) && (
+                      <button onClick={() => handleActivate(c._id)} title={c.status === 'paused' ? 'Komeza' : 'Tangira'} className="p-1.5 text-green-500 hover:bg-green-50 rounded">
                         <FiPlay size={15} />
                       </button>
                     )}

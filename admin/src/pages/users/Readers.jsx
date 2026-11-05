@@ -25,10 +25,10 @@ export default function Readers() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Urakeneye gusiba ${name}?`)) return;
+    if (!window.confirm(`Urakeneye guhagarika konti ya ${name}? Amateka azagumaho.`)) return;
     try {
       await api.delete(`/users/${id}`);
-      toast.success('Umusomyi yasibwe.'); load(page);
+      toast.success('Konti y’umusomyi yahagaritswe.'); load(page);
     } catch { toast.error('Gusiba byanze.'); }
   };
 

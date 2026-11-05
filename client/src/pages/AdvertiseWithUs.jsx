@@ -160,6 +160,8 @@ export default function AdvertiseWithUs() {
   const [submitted, setSubmitted]   = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [checkEmail, setCheckEmail] = useState('');
+  const [checkTrackingCode, setCheckTrackingCode] = useState('');
+  const [trackingCode, setTrackingCode] = useState('');
   const [statusResults, setStatusResults] = useState(null);
   const [checking, setChecking]     = useState(false);
 
@@ -181,7 +183,7 @@ export default function AdvertiseWithUs() {
       adContent: '',
     }));
   };
-
+aaaaaaaaaaaa
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.companyName || !form.contactName || !form.email) {
@@ -194,7 +196,8 @@ export default function AdvertiseWithUs() {
     }
     setSubmitting(true);
     try {
-      await submitAdRequest(form);
+      const response = await submitAdRequest(form);
+      setTrackingCode(response.data?.data?.trackingCode || '');
       setSubmitted(true);
       setSubmittedEmail(form.email);
       toast.success('Ubusabe bwawe bwakiriwe! Tuzakuvugisha vuba.');
@@ -207,10 +210,10 @@ export default function AdvertiseWithUs() {
 
   const handleCheckStatus = async (e) => {
     e.preventDefault();
-    if (!checkEmail) return;
+    if (!checkEmail || !checkTrackingCode) return;
     setChecking(true);
     try {
-      const res = await api.get('/ads/request-status', { params: { email: checkEmail } });
+      const res = await api.get('/ads/request-status', { params: { email: checkEmail, trackingCode: checkTrackingCode } });
       setStatusResults(res.data.data.requests || []);
     } catch {
       toast.error('Habaye ikosa. Ongera ugerageze.');
@@ -458,6 +461,7 @@ export default function AdvertiseWithUs() {
           <div className="text-5xl mb-3">🎉</div>
           <h3 className="text-xl font-bold text-gray-900">Ubusabe bwawe bwakiriwe!</h3>
           <p className="text-gray-600 mt-2">Tuzakuvugisha kuri <strong>{submittedEmail}</strong> vuba.</p>
+          {trackingCode && <p className="mt-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">Kode yo gukurikirana ubusabe bwawe: <strong className="font-mono text-lg">{trackingCode}</strong>. Yibike; uzakenera iyi kode na email yawe kugira ngo urebe uko ubusabe buhagaze.</p>}
           <p className="text-sm text-gray-500 mt-1">
             Pacute: <strong>{selectedPkg.name}</strong> — {selectedDur.label} — {currentPrice}
           </p>
@@ -523,14 +527,17 @@ export default function AdvertiseWithUs() {
       {/* ─── Status Check ─── */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-12 max-w-2xl mx-auto">
         <h2 className="text-lg font-bold text-gray-900 mb-2">🔍 Reba Status y'Ubusabe Bwawe</h2>
-        <p className="text-sm text-gray-500 mb-4">Andika email yawe ubone ko bimeze bite.</p>
-        <form onSubmit={handleCheckStatus} className="flex gap-2">
+        <p className="text-sm text-gray-500 mb-4">Andika email wakoresheje na kode wahawe igihe woherezaga ubusabe.</p>
+        <form onSubmit={handleCheckStatus} className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input type="email" value={checkEmail} onChange={(e) => setCheckEmail(e.target.value)} required
               className="w-full border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="email@example.com" />
           </div>
+          <input type="text" value={checkTrackingCode} onChange={(e) => setCheckTrackingCode(e.target.value.toUpperCase())} required maxLength={10}
+            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Kode yo gukurikirana" />
           <button type="submit" disabled={checking} className="btn-secondary px-5 disabled:opacity-60">
             {checking ? '...' : 'Reba'}
           </button>
@@ -548,10 +555,8 @@ export default function AdvertiseWithUs() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm">{sc.label}</p>
                       <p className="text-xs mt-0.5">
-                        {req.companyName} — <span className="capitalize">{req.requestedPackage}</span>
-                        {req.duration && <> · {DURATIONS.find((d) => d.id === req.duration)?.label}</>}
+                        <span className="capitalize">{req.requestedPackage}</span>
                       </p>
-                      {req.adminNote && <p className="text-xs mt-1 italic">"{req.adminNote}"</p>}
                     </div>
                   </div>
                 </div>

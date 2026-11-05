@@ -12,14 +12,16 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return sendError(res, 'Name, email, and password are required.', 400);
+    if (!name || !email || !password || String(password).length < 8) {
+      return sendError(res, 'Name, email, and a password of at least 8 characters are required.', 400);
     }
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) return sendError(res, 'Enter a valid email address.', 400);
 
-    const existing = await User.findOne({ email });
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return sendError(res, 'Email already registered.', 400);
 
-    const user = await User.create({ name, email, password, role: 'reader' });
+    const user = await User.create({ name: String(name).trim(), email: normalizedEmail, password, role: 'reader' });
     const token = signToken(user._id);
 
     sendSuccess(res, { token, user: sanitizeUser(user) }, 'Account created successfully.', 201);
@@ -37,7 +39,7 @@ export const login = async (req, res, next) => {
 
     if (!email || !password) return sendError(res, 'Email and password are required.', 400);
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email: String(email).trim().toLowerCase() }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
       return sendError(res, 'Invalid email or password.', 401);
     }
@@ -74,9 +76,15 @@ export const getMe = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     const { name, bio, preferredLanguage, preferredDistrict, newsletterSubscribed } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = String(name).trim();
+    if (bio !== undefined) updates.bio = String(bio).slice(0, 1000);
+    if (preferredLanguage !== undefined) updates.preferredLanguage = preferredLanguage;
+    if (preferredDistrict !== undefined) updates.preferredDistrict = preferredDistrict;
+    if (newsletterSubscribed !== undefined) updates.newsletterSubscribed = Boolean(newsletterSubscribed);
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name, bio, preferredLanguage, preferredDistrict, newsletterSubscribed },
+      { $set: updates },
       { new: true, runValidators: true }
     );
     sendSuccess(res, { user: sanitizeUser(user) }, 'Profile updated.');
@@ -91,8 +99,9 @@ export const updateProfile = async (req, res, next) => {
 export const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (!newPassword || String(newPassword).length < 8) return sendError(res, 'New password must contain at least 8 characters.', 400);
     const user = await User.findById(req.user._id).select('+password');
-    if (!(await user.comparePassword(currentPassword))) {
+    if (!user || !(await user.comparePassword(currentPassword))) {
       return sendError(res, 'Current password is incorrect.', 400);
     }
     user.password = newPassword;

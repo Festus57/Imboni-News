@@ -1,6 +1,7 @@
 import Media from '../models/Media.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
 // @desc   Upload media file (local storage — no Cloudinary needed)
@@ -11,8 +12,8 @@ export const uploadMedia = async (req, res, next) => {
     if (!req.file) return sendError(res, 'No file uploaded.', 400);
 
     // Build URL — use /uploads/ path served statically
-    const baseUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 8000}`;
-    const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    const baseUrl = (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 8000}`).replace(/\/$/, '');
+    const fileUrl = `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`;
 
     const fileType = req.file.mimetype.startsWith('image/')
       ? 'image'
@@ -43,8 +44,8 @@ export const uploadMedia = async (req, res, next) => {
 // @access Staff
 export const getMedia = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 30;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 30));
     const skip = (page - 1) * limit;
     const filter = {};
     if (req.query.type) filter.type = req.query.type;
@@ -69,7 +70,10 @@ export const deleteMedia = async (req, res, next) => {
     if (!media) return sendError(res, 'Media not found.', 404);
 
     // Delete local file
-    const filePath = path.join('public/uploads', media.publicId);
+    const controllerDir = path.dirname(fileURLToPath(import.meta.url));
+    const uploadDir = path.resolve(controllerDir, '../../public/uploads');
+    const safeFilename = path.basename(media.publicId);
+    const filePath = path.join(uploadDir, safeFilename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }

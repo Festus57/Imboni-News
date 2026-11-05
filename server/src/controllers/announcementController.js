@@ -48,7 +48,9 @@ export const createAnnouncement = async (req, res, next) => {
 export const updateAnnouncement = async (req, res, next) => {
   try {
     const announcement = await Announcement.findByIdAndUpdate(
-      req.params.id, req.body, { new: true, runValidators: true }
+      req.params.id,
+      { $set: { title: req.body.title, content: req.body.content, imageUrl: req.body.imageUrl, videoUrl: req.body.videoUrl } },
+      { new: true, runValidators: true }
     ).populate('createdBy', 'name');
     if (!announcement) return sendError(res, 'Itangazo ntibonetse.', 404);
     sendSuccess(res, { announcement }, 'Ryahinduwe!');

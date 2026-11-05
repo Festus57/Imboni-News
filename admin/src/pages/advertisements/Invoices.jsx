@@ -4,10 +4,13 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api from '../../services/api.js';
 import Loader from '../../components/Loader.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const EMPTY = { campaign: '', advertiser: '', amountRwf: '', dueDate: '', notes: '' };
 
 export default function Invoices() {
+  const { user } = useAuth();
+  const canAdministerInvoices = ['super_admin', 'admin'].includes(user?.role);
   const [invoices, setInvoices] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [advertisers, setAdvertisers] = useState([]);
@@ -38,8 +41,13 @@ export default function Invoices() {
   };
 
   const handlePaid = async (id) => {
-    await api.patch(`/ads/invoices/${id}/pay`);
-    toast.success('Itishyurwa ryarangiye!'); load();
+    try {
+      await api.patch(`/ads/invoices/${id}/pay`);
+      toast.success('Itishyurwa ryarangiye!');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Kwishyura ntibyemejwe.');
+    }
   };
 
   const handleDelete = async (id) => {
@@ -60,7 +68,7 @@ export default function Invoices() {
   if (loading) return <Loader />;
 
   const totalPaid = invoices.filter((i) => i.status === 'paid').reduce((s, i) => s + i.amountRwf, 0);
-  const totalUnpaid = invoices.filter((i) => i.status === 'unpaid').reduce((s, i) => s + i.amountRwf, 0);
+  const totalUnpaid = invoices.filter((i) => ['unpaid', 'overdue'].includes(i.status)).reduce((s, i) => s + i.amountRwf, 0);
 
   return (
     <div>
@@ -149,14 +157,14 @@ export default function Invoices() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
-                    {inv.status === 'unpaid' && (
+                    {canAdministerInvoices && inv.status === 'unpaid' && (
                       <button onClick={() => handlePaid(inv._id)} title="Emeza Kwishyurwa" className="p-1 text-green-500 hover:text-green-700">
                         <FiCheck size={15} />
                       </button>
                     )}
-                    <button onClick={() => handleDelete(inv._id)} title="Siba" className="p-1 text-gray-300 hover:text-red-500">
+                    {canAdministerInvoices && <button onClick={() => handleDelete(inv._id)} title="Siba" className="p-1 text-gray-300 hover:text-red-500">
                       <FiTrash2 size={15} />
-                    </button>
+                    </button>}
                   </div>
                 </td>
               </tr>

@@ -31,6 +31,7 @@ const TYPE_ICONS = {
 const STATUS_CFG = {
   new:       { color: 'bg-red-100 text-red-600',    label: 'Gishya',    icon: <FiClock size={11} /> },
   contacted: { color: 'bg-yellow-100 text-yellow-700', label: 'Byagezweho', icon: <FiMail size={11} /> },
+  converting: { color: 'bg-blue-100 text-blue-700', label: 'Birimo gukorwa', icon: <FiClock size={11} /> },
   converted: { color: 'bg-green-100 text-green-700', label: 'Byemewe',   icon: <FiCheck size={11} /> },
   declined:  { color: 'bg-gray-100 text-gray-500',  label: 'Byaranzwe', icon: <FiX size={11} /> },
 };
@@ -52,10 +53,10 @@ export default function Kwamamaza() {
   };
   useEffect(load, []);
 
-  const handleAccept = async (id) => {
+  const handleContact = async (id) => {
     try {
-      await api.patch(`/ads/requests/${id}/accept`, { note: note || '' });
-      toast.success('Ubusabe bwemewe!');
+      await api.patch(`/ads/requests/${id}/contact`, { note: note || '' });
+      toast.success('Ubusabe bwagezweho; mwavuganye n’umukiriya.');
       setNoteId(null); setNote('');
       load();
     } catch { toast.error('Gukira byanze.'); }
@@ -89,10 +90,10 @@ export default function Kwamamaza() {
     const days = daysMap[r.duration] || 30;
     const now = new Date();
     const end = new Date(now); end.setDate(end.getDate() + days);
-    const fmt = (d) => d.toISOString().split('T')[0];
+    const fmt = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
     setCampaignForm({
       name:           `${r.companyName} — ${r.requestedPackage}`,
-      package:        r.requestedPackage || 'business',
+      package:        ['starter', 'business', 'premium'].includes(r.requestedPackage) ? r.requestedPackage : 'business',
       placement:      r.placement || 'top_banner',
       adType:         r.adType || 'image',
       imageUrl:       r.adType === 'image'   ? (r.mediaUrl || '') : '',
@@ -102,7 +103,7 @@ export default function Kwamamaza() {
       altText:        r.companyName || '',
       startDate:      fmt(now),
       endDate:        fmt(end),
-      priceRwf:       r.requestedPackage === 'starter' ? 45000 : r.requestedPackage === 'premium' ? 180000 : 90000,
+      priceRwf:       ({ starter: { '7days': 15000, '1month': 45000, '3months': 120000 }, business: { '7days': 35000, '1month': 90000, '3months': 240000 }, premium: { '7days': 70000, '1month': 180000, '3months': 480000 } }[r.requestedPackage]?.[r.duration]) || 90000,
       advertiser:     '',
     });
     setCampaignModal(r);
@@ -112,9 +113,8 @@ export default function Kwamamaza() {
     e.preventDefault();
     if (!campaignForm.advertiser) { toast.error('Hitamo umushoramari.'); return; }
     try {
-      await api.post('/ads/campaigns', campaignForm);
-      await api.patch(`/ads/requests/${campaignModal._id}/accept`, { note: 'Campaign created.' });
-      toast.success('Campaign yashyizweho na itangazo ryemewe!');
+      await api.post(`/ads/requests/${campaignModal._id}/convert`, campaignForm);
+      toast.success('Campaign yashyizweho kandi ubusabe buhindutse converted!');
       setCampaignModal(null); load();
     } catch (err) { toast.error(err.response?.data?.message || 'Ikibazo.'); }
   };
@@ -287,15 +287,15 @@ export default function Kwamamaza() {
                           className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
                           placeholder="Ongera icyitonderwa..." />
                         <div className="flex gap-2">
-                          <button onClick={() => handleAccept(r._id)} className="btn-primary text-xs flex items-center gap-1.5">
-                            <FiCheck size={14}/> Emeza
+                          <button onClick={() => handleContact(r._id)} className="btn-primary text-xs flex items-center gap-1.5">
+                            <FiCheck size={14}/> Twavuganye
                           </button>
                           <button onClick={() => { setNoteId(null); setNote(''); }} className="btn-ghost text-xs">Reka</button>
                         </div>
                       </div>
                     ) : (
                       <button onClick={() => setNoteId(r._id)} className="btn-primary text-xs flex items-center gap-1.5">
-                        <FiCheck size={14}/> Emeza
+                        <FiCheck size={14}/> Twavuganye
                       </button>
                     )}
                     {decliningId === r._id ? (
@@ -315,14 +315,13 @@ export default function Kwamamaza() {
                         <FiX size={14}/> Ranza
                       </button>
                     )}
-                    {/* Create campaign directly from this request */}
-                    {noteId !== r._id && decliningId !== r._id && (
-                      <button onClick={() => openCampaignModal(r)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-semibold transition-colors">
-                        <FiZap size={13}/> Tanga Itangazo
-                      </button>
-                    )}
                   </>
+                )}
+                {['new', 'contacted'].includes(r.status) && noteId !== r._id && decliningId !== r._id && (
+                  <button onClick={() => openCampaignModal(r)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg font-semibold transition-colors">
+                    <FiZap size={13}/> Tanga Itangazo
+                  </button>
                 )}
                 {/* Delete always visible */}
                 <button onClick={() => handleDelete(r._id)}

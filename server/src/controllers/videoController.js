@@ -1,5 +1,6 @@
 import Video from '../models/Video.js';
 import LiveStream from '../models/LiveStream.js';
+import Article from '../models/Article.js';
 import { generateUniqueSlug } from '../utils/generateSlug.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
@@ -25,14 +26,14 @@ export const getCmsVideos = async (req, res, next) => {
 // @access Public
 export const getVideos = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 12;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 12));
     const skip = (page - 1) * limit;
 
     const filter = { status: 'published' };
     if (req.query.type) filter.type = req.query.type;
     if (req.query.category) filter.category = req.query.category;
-    if (req.query.isShort) filter.isShort = true;
+    if (req.query.isShort === 'true') filter.isShort = true;
 
     const [videos, total] = await Promise.all([
       Video.find(filter)
@@ -109,12 +110,12 @@ export const createVideo = async (req, res, next) => {
 // @access Video Editor, Admin
 export const publishVideo = async (req, res, next) => {
   try {
-    const video = await Video.findByIdAndUpdate(
-      req.params.id,
+    const video = await Video.findOneAndUpdate(
+      { _id: req.params.id, status: { $in: ['draft', 'pending_review'] } },
       { status: 'published', publishedAt: new Date() },
       { new: true }
     );
-    if (!video) return sendError(res, 'Video not found.', 404);
+    if (!video) return sendError(res, 'Video not found or is already published.', 404);
     sendSuccess(res, { video }, 'Video published.');
   } catch (err) {
     next(err);
@@ -126,11 +127,13 @@ export const publishVideo = async (req, res, next) => {
 // @access Video Editor, Admin
 export const updateVideo = async (req, res, next) => {
   try {
-    const video = await Video.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('uploadedBy', 'name').populate('category', 'name nameKiny slug');
+    const current = await Video.findById(req.params.id);
+    if (!current) return sendError(res, 'Video not found.', 404);
+    const allowed = ['title', 'titleKiny', 'description', 'videoUrl', 'thumbnailUrl', 'type', 'isShort', 'category', 'tags', 'district', 'linkedArticle'];
+    const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => allowed.includes(key)));
+    if (updates.title && updates.title !== current.title) updates.slug = await generateUniqueSlug(updates.title, Video, current._id);
+    const video = await Video.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true, runValidators: true })
+      .populate('uploadedBy', 'name').populate('category', 'name nameKiny slug');
     if (!video) return sendError(res, 'Video not found.', 404);
     sendSuccess(res, { video }, 'Video updated.');
   } catch (err) {
@@ -143,8 +146,10 @@ export const updateVideo = async (req, res, next) => {
 // @access Video Editor, Admin
 export const deleteVideo = async (req, res, next) => {
   try {
-    const video = await Video.findByIdAndDelete(req.params.id);
+    const video = await Video.findById(req.params.id);
     if (!video) return sendError(res, 'Video not found.', 404);
+    if (await Article.exists({ featuredVideo: video._id })) return sendError(res, 'This video is linked to an article and cannot be deleted.', 409);
+    await video.deleteOne();
     sendSuccess(res, {}, 'Video deleted.');
   } catch (err) {
     next(err);
@@ -186,12 +191,14 @@ export const createLiveStream = async (req, res, next) => {
 // @access Admin, Video Editor
 export const updateLiveStream = async (req, res, next) => {
   try {
-    const stream = await LiveStream.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'name');
+    const stream = await LiveStream.findById(req.params.id);
     if (!stream) return sendError(res, 'Stream not found.', 404);
+    const allowed = ['title', 'description', 'streamUrl', 'thumbnailUrl', 'scheduledAt', 'status'];
+    for (const key of allowed) if (req.body?.[key] !== undefined) stream[key] = req.body[key];
+    if (stream.status === 'live' && !stream.startedAt) stream.startedAt = new Date();
+    if (stream.status === 'ended' && !stream.endedAt) stream.endedAt = new Date();
+    await stream.save();
+    await stream.populate('createdBy', 'name');
     sendSuccess(res, { stream }, 'Stream updated.');
   } catch (err) {
     next(err);

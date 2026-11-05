@@ -3,7 +3,7 @@ import {
   FiHome, FiFileText, FiVideo, FiImage, FiTag,
   FiDollarSign, FiUsers, FiBarChart2, FiX,
   FiRadio, FiCheck, FiMail, FiTrendingUp,
-  FiZap, FiInbox,
+  FiZap, FiInbox, FiMessageSquare, FiAlertCircle,
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -24,7 +24,7 @@ const NAV = [
 
   { label: 'KWAMAMAZA', type: 'heading' },
   { to: '/ads',              icon: <FiBarChart2 />,   label: 'Ad Dashboard',        roles: ['super_admin','admin','ad_manager'] },
-  { to: '/ads/amatangazo',   icon: <FiZap />,         label: 'Amatangazo',          roles: ['super_admin','admin','ad_manager'] },
+  { to: '/ads/amatangazo',   icon: <FiZap />,         label: 'Amatangazo',          roles: ['super_admin','admin','editor'] },
   { to: '/ads/kwamamaza',    icon: <FiMail />,        label: 'Ubusabe Bushya',      roles: ['super_admin','admin','ad_manager'] },
   { to: '/ads/campaigns',    icon: <FiZap />,         label: "Inzira z'Itangazo",  roles: ['super_admin','admin','ad_manager'] },
   { to: '/ads/advertisers',  icon: <FiUsers />,       label: 'Abatangaza',          roles: ['super_admin','admin','ad_manager'] },
@@ -32,9 +32,11 @@ const NAV = [
   { to: '/ads/invoices',     icon: <FiDollarSign />,  label: 'Fagitire',            roles: ['super_admin','admin','ad_manager'] },
 
   { label: 'ABAKORESHA', type: 'heading' },
-  { to: '/users/staff',   icon: <FiUsers />,     label: 'Abakozi',  roles: ['super_admin','admin'] },
-  { to: '/users/readers', icon: <FiUsers />,     label: 'Abasomyi', roles: ['super_admin','admin'] },
-  { to: '/analytics',     icon: <FiTrendingUp />, label: 'Imibare', roles: ['super_admin','admin'] },
+  { to: '/users/staff',   icon: <FiUsers />,          label: 'Abakozi',              roles: ['super_admin','admin'] },
+  { to: '/users/readers', icon: <FiUsers />,          label: 'Abasomyi',             roles: ['super_admin','admin'] },
+  { to: '/comments',      icon: <FiMessageSquare />,  label: 'Ibitekerezo',          roles: ['super_admin','admin','editor'] },
+  { to: '/newstips',      icon: <FiAlertCircle />,    label: 'Ikibazo cy\'Inkuru',   roles: ['super_admin','admin','editor','journalist'] },
+  { to: '/analytics',     icon: <FiTrendingUp />,     label: 'Imibare',              roles: ['super_admin','admin'] },
 ];
 
 export default function Sidebar({ open, onClose }) {

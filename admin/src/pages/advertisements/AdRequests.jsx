@@ -18,10 +18,10 @@ export default function AdRequests() {
   };
   useEffect(load, []);
 
-  const handleAccept = async (id) => {
+  const handleContact = async (id) => {
     try {
-      await api.patch(`/ads/requests/${id}/accept`, {});
-      toast.success('Ubusabe bwemewe!');
+      await api.patch(`/ads/requests/${id}/contact`, {});
+      toast.success('Ubusabe bwashyizwe muri Twavuganye.');
       load();
     } catch { toast.error('Gukira byanze.'); }
   };
@@ -45,6 +45,7 @@ export default function AdRequests() {
   const STATUS = {
     new:       { color: 'bg-red-100 text-red-600',      label: 'Gishya',     icon: <FiClock size={11} /> },
     contacted: { color: 'bg-yellow-100 text-yellow-700', label: 'Byagezweho', icon: <FiMail size={11} /> },
+    converting: { color: 'bg-blue-100 text-blue-700', label: 'Birimo gukorwa', icon: <FiClock size={11} /> },
     converted: { color: 'bg-green-100 text-green-700',   label: 'Byemewe',    icon: <FiCheck size={11} /> },
     declined:  { color: 'bg-gray-100 text-gray-500',     label: 'Byaranzwe',  icon: <FiX size={11} /> },
   };
@@ -91,9 +92,9 @@ export default function AdRequests() {
                 <div className="flex flex-col gap-2 flex-shrink-0">
                   {r.status === 'new' && (
                     <>
-                      <button onClick={() => handleAccept(r._id)}
+                      <button onClick={() => handleContact(r._id)}
                         className="btn-primary text-xs flex items-center gap-1.5">
-                        <FiCheck size={14} /> Emeza
+                        <FiCheck size={14} /> Twavuganye
                       </button>
                       <button onClick={() => setDecliningId(r._id)}
                         className="btn-danger text-xs flex items-center gap-1.5">

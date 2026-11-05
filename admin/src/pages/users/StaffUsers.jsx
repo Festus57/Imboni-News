@@ -4,11 +4,14 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api from '../../services/api.js';
 import Loader from '../../components/Loader.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 const ROLES = ['admin', 'editor', 'journalist', 'photographer', 'video_editor', 'ad_manager'];
 const EMPTY = { name: '', email: '', password: '', role: 'journalist', staffBio: '' };
 
 export default function StaffUsers() {
+  const { user } = useAuth();
+  const availableRoles = user?.role === 'super_admin' ? ROLES : ROLES.filter((role) => role !== 'admin');
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY);
@@ -36,10 +39,10 @@ export default function StaffUsers() {
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Urakeneye gusiba ${name}?`)) return;
+    if (!window.confirm(`Urakeneye guhagarika konti ya ${name}? Amateka azagumaho.`)) return;
     try {
       await api.delete(`/users/${id}`);
-      toast.success('Umukozi yasibwe.'); load();
+      toast.success('Konti y’umukozi yahagaritswe.'); load();
     } catch { toast.error('Gusiba byanze.'); }
   };
 
@@ -78,12 +81,12 @@ export default function StaffUsers() {
             </div>
             <div>
               <label className="label">Ijambobanga *</label>
-              <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input" minLength={6} />
+              <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="input" minLength={8} />
             </div>
             <div>
               <label className="label">Uruhare</label>
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="input">
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                {availableRoles.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
             <div className="md:col-span-2">
@@ -141,7 +144,7 @@ export default function StaffUsers() {
                       </button>
                     )}
                     {u.role !== 'super_admin' && (
-                      <button onClick={() => handleDelete(u._id, u.name)} title="Siba" className="text-gray-300 hover:text-red-500 ml-1">
+                      <button onClick={() => handleDelete(u._id, u.name)} title="Hagarika konti" className="text-gray-300 hover:text-red-500 ml-1">
                         <FiTrash2 size={15} />
                       </button>
                     )}

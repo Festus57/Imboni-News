@@ -1,13 +1,13 @@
 import express from 'express';
 import {
   getActiveAds, trackAdEvent, submitAdRequest, checkRequestStatus,
-  getAdvertisers, createAdvertiser,
-  getCampaigns, createCampaign, updateCampaign, deleteCampaign, approveCampaign, activateCampaign,
-  getAdRequests, acceptAdRequest, declineAdRequest, deleteAdRequest,
+  getAdvertisers, createAdvertiser, updateAdvertiser, deleteAdvertiser, toggleAdvertiserStatus,
+  getCampaigns, createCampaign, updateCampaign, deleteCampaign, approveCampaign, activateCampaign, pauseCampaign,
+  getAdRequests, contactAdRequest, convertAdRequestToCampaign, declineAdRequest, deleteAdRequest,
   getInvoices, createInvoice, markInvoicePaid, deleteInvoice,
 } from '../controllers/adController.js';
 import { protect } from '../middleware/authMiddleware.js';
-import { isAdmin, isAdManager, isStaff } from '../middleware/roleMiddleware.js';
+import { isAdmin, isAdManager } from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 
@@ -17,26 +17,31 @@ router.post('/:id/track', trackAdEvent);
 router.post('/request', submitAdRequest);
 router.get('/request-status', checkRequestStatus);
 
-// CMS — Advertisers (read: all staff, write: ad manager+)
-router.get('/advertisers', protect, isStaff, getAdvertisers);
+// CMS — Advertisers (ad manager and administrators)
+router.get('/advertisers', protect, isAdManager, getAdvertisers);
 router.post('/advertisers', protect, isAdManager, createAdvertiser);
+router.put('/advertisers/:id', protect, isAdManager, updateAdvertiser);
+router.delete('/advertisers/:id', protect, isAdManager, deleteAdvertiser);
+router.patch('/advertisers/:id/toggle-status', protect, isAdManager, toggleAdvertiserStatus);
 
-// CMS — Campaigns (read: all staff, write: ad manager+)
-router.get('/campaigns', protect, isStaff, getCampaigns);
+// CMS — Campaigns (ad manager and administrators)
+router.get('/campaigns', protect, isAdManager, getCampaigns);
 router.post('/campaigns', protect, isAdManager, createCampaign);
 router.put('/campaigns/:id', protect, isAdManager, updateCampaign);
 router.delete('/campaigns/:id', protect, isAdManager, deleteCampaign);
 router.patch('/campaigns/:id/approve', protect, isAdmin, approveCampaign);
 router.patch('/campaigns/:id/activate', protect, isAdManager, activateCampaign);
+router.patch('/campaigns/:id/pause', protect, isAdManager, pauseCampaign);
 
-// CMS — Ad Requests (read: all staff, write: ad manager+)
-router.get('/requests', protect, isStaff, getAdRequests);
-router.patch('/requests/:id/accept', protect, isAdManager, acceptAdRequest);
+// CMS — Ad Requests (ad manager and administrators)
+router.get('/requests', protect, isAdManager, getAdRequests);
+router.patch('/requests/:id/contact', protect, isAdManager, contactAdRequest);
+router.post('/requests/:id/convert', protect, isAdManager, convertAdRequestToCampaign);
 router.patch('/requests/:id/decline', protect, isAdManager, declineAdRequest);
 router.delete('/requests/:id', protect, isAdManager, deleteAdRequest);
 
-// CMS — Invoices (read: all staff, write: ad manager+)
-router.get('/invoices', protect, isStaff, getInvoices);
+// CMS — Invoices (ad manager and administrators)
+router.get('/invoices', protect, isAdManager, getInvoices);
 router.post('/invoices', protect, isAdManager, createInvoice);
 router.patch('/invoices/:id/pay', protect, isAdmin, markInvoicePaid);
 router.delete('/invoices/:id', protect, isAdmin, deleteInvoice);

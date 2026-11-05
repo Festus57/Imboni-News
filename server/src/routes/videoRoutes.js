@@ -17,8 +17,8 @@ router.get('/cms/all', protect, isStaff, getCmsVideos);
 // ── Live Streams (BEFORE /:slug to avoid conflict) ──
 router.get('/live', getLiveStreams);
 router.post('/live', protect, isVideoEditor, createLiveStream);
-router.put('/live/:id', protect, isAdmin, updateLiveStream);
-router.delete('/live/:id', protect, isAdmin, deleteLiveStream);
+router.put('/live/:id', protect, isVideoEditor, updateLiveStream);
+router.delete('/live/:id', protect, isVideoEditor, deleteLiveStream);
 
 // ── CMS Video actions ────────────────────────────────
 router.post('/', protect, isVideoEditor, createVideo);

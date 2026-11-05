@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiFacebook, FiTwitter, FiYoutube, FiInstagram, FiMail, FiPhone } from 'react-icons/fi';
 import festus from "../../assets/festus_16.png";
 export default function Footer() {
   const year = new Date().getFullYear();
+  const [developerImageFailed, setDeveloperImageFailed] = useState(false);
 
   return (
     <footer className="bg-secondary text-gray-300 mt-12">
@@ -77,15 +79,11 @@ export default function Footer() {
           {/* Developer photo */}
           <div className="flex items-center gap-4 flex-shrink-0">
             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary flex-shrink-0 bg-gray-700">
-              <img
-                src={festus}
-                alt="Developer"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = `<div class="w-full h-full flex items-center justify-center text-primary font-bold text-lg">F</div>`;
-                }}
-              />
+              {developerImageFailed ? (
+                <div className="w-full h-full flex items-center justify-center text-primary font-bold text-lg">F</div>
+              ) : (
+                <img src={festus} alt="Developer" className="w-full h-full object-cover" onError={() => setDeveloperImageFailed(true)} />
+              )}
             </div>
             <div>
               <p className="text-white text-xs font-semibold">Byakozwe na</p>

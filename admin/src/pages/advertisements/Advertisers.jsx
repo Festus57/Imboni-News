@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiMail, FiPhone } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiMail, FiPhone, FiRefreshCw } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../services/api.js';
 import Loader from '../../components/Loader.jsx';
@@ -42,9 +42,14 @@ export default function Advertisers() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Siba uyu mushoramari?')) return;
-    await api.delete(`/ads/advertisers/${id}`);
-    toast.success('Yasibwe.'); load();
+    if (!window.confirm('Hagarika uyu mushoramari? Amateka ye azagumaho.')) return;
+    try { await api.delete(`/ads/advertisers/${id}`); toast.success('Umushoramari yahagaritswe.'); load(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Ntibyashobotse.'); }
+  };
+
+  const handleToggleStatus = async (id) => {
+    try { await api.patch(`/ads/advertisers/${id}/toggle-status`); toast.success('Imiterere yahinduwe.'); load(); }
+    catch { toast.error('Ntibyashobotse.'); }
   };
 
   if (loading) return <Loader />;
@@ -111,7 +116,7 @@ export default function Advertisers() {
           <tbody className="divide-y divide-gray-100">
             {advertisers.map((a) => (
               <tr key={a._id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{a.companyName}</td>
+                <td className="px-4 py-3 font-medium">{a.companyName} {!a.isActive && <span className="ml-2 badge bg-gray-100 text-gray-500">Inactive</span>}</td>
                 <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{a.contactName}</td>
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <div className="flex gap-3 text-gray-500 text-xs">
@@ -122,7 +127,11 @@ export default function Advertisers() {
                 <td className="px-4 py-3">
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => handleEdit(a)} className="text-accent hover:text-blue-800"><FiEdit2 size={15} /></button>
-                    <button onClick={() => handleDelete(a._id)} className="text-red-400 hover:text-red-700"><FiTrash2 size={15} /></button>
+                    {a.isActive ? (
+                      <button onClick={() => handleDelete(a._id)} className="text-red-400 hover:text-red-700" title="Deactivate"><FiTrash2 size={15} /></button>
+                    ) : (
+                      <button onClick={() => handleToggleStatus(a._id)} className="text-green-500 hover:text-green-700" title="Reactivate"><FiRefreshCw size={15} /></button>
+                    )}
                   </div>
                 </td>
               </tr>

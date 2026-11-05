@@ -32,3 +32,6 @@ lerna-debug.log*
 # Operating system files
 .DS_Store
 Thumbs.db
+# Uploaded runtime media (keep the directory placeholder only)
+server/public/uploads/*
+!server/public/uploads/.gitkeep

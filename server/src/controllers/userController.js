@@ -18,8 +18,8 @@ export const getStaffUsers = async (req, res, next) => {
 // @access Admin+
 export const getReaders = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 20));
     const skip = (page - 1) * limit;
     const [readers, total] = await Promise.all([
       User.find({ role: 'reader' }).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -39,11 +39,14 @@ export const createStaffUser = async (req, res, next) => {
     const { name, email, password, role, staffBio } = req.body;
     const staffRoles = ['admin', 'editor', 'journalist', 'photographer', 'video_editor', 'ad_manager'];
     if (!staffRoles.includes(role)) return sendError(res, 'Invalid staff role.', 400);
+    if (role === 'admin' && req.user.role !== 'super_admin') return sendError(res, 'Only a super admin can create another admin.', 403);
+    if (!name || !email || !password || String(password).length < 8) return sendError(res, 'Name, email and a password of at least 8 characters are required.', 400);
 
-    const existing = await User.findOne({ email });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return sendError(res, 'Email already registered.', 400);
 
-    const user = await User.create({ name, email, password, role, staffBio, isStaff: true });
+    const user = await User.create({ name: String(name).trim(), email: normalizedEmail, password, role, staffBio, isStaff: true });
     sendSuccess(res, { user }, 'Staff user created.', 201);
   } catch (err) {
     next(err);
@@ -58,6 +61,7 @@ export const toggleUserStatus = async (req, res, next) => {
     const user = await User.findById(req.params.id);
     if (!user) return sendError(res, 'User not found.', 404);
     if (user.role === 'super_admin') return sendError(res, 'Cannot deactivate super admin.', 403);
+    if (String(user._id) === String(req.user._id)) return sendError(res, 'You cannot deactivate your own account.', 403);
     user.isActive = !user.isActive;
     await user.save({ validateBeforeSave: false });
     sendSuccess(res, { isActive: user.isActive }, `User ${user.isActive ? 'activated' : 'deactivated'}.`);
@@ -74,8 +78,10 @@ export const deleteUser = async (req, res, next) => {
     const user = await User.findById(req.params.id);
     if (!user) return sendError(res, 'User not found.', 404);
     if (user.role === 'super_admin') return sendError(res, 'Cannot delete super admin.', 403);
-    await User.findByIdAndDelete(req.params.id);
-    sendSuccess(res, {}, 'User deleted.');
+    if (String(user._id) === String(req.user._id)) return sendError(res, 'You cannot delete your own account.', 403);
+    user.isActive = false;
+    await user.save({ validateBeforeSave: false });
+    sendSuccess(res, { user: { _id: user._id, isActive: false } }, 'User deactivated. Historical records are preserved.');
   } catch (err) {
     next(err);
   }
@@ -85,6 +91,9 @@ export const deleteUser = async (req, res, next) => {
 export const toggleFollowJournalist = async (req, res, next) => {
   try {
     const currentUser = await User.findById(req.user._id);
+    if (!currentUser || currentUser.role !== 'reader') return sendError(res, 'Only reader accounts can follow journalists.', 403);
+    const journalist = await User.findOne({ _id: req.params.id, role: 'journalist', isActive: true }).select('_id');
+    if (!journalist) return sendError(res, 'Journalist not found.', 404);
     const journalistId = req.params.id;
     const isFollowing = currentUser.followedJournalists.includes(journalistId);
     if (isFollowing) {

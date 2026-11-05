@@ -18,4 +18,7 @@ const mediaSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+mediaSchema.index({ uploadedBy: 1 });
+mediaSchema.index({ type: 1, createdAt: -1 });
+
 export default mongoose.model('Media', mediaSchema);
