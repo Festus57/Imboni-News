@@ -183,7 +183,7 @@ export default function AdvertiseWithUs() {
       adContent: '',
     }));
   };
-aaaaaaaaaaaa
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.companyName || !form.contactName || !form.email) {

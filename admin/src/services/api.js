@@ -18,6 +18,11 @@ api.interceptors.response.use(
       localStorage.removeItem('imboni_admin_token');
       window.location.href = '/login';
     }
+    // If network error (server unreachable), show helpful message
+    if (!err.response && err.message === 'Network Error') {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
+      console.error(`Cannot reach API at ${apiUrl}. Check if VITE_API_URL is set correctly.`);
+    }
     return Promise.reject(err);
   }
 );
