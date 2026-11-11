@@ -70,6 +70,18 @@ app.get('/api/health', (_req, res) => {
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
+// Reject API requests immediately when MongoDB is unavailable
+// (prevents 10-second hangs on every request when Atlas is unreachable)
+app.use('/api', (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      success: false,
+      message: 'Database unavailable. Please try again shortly.',
+    });
+  }
+  next();
+});
+
 // Apply a baseline request limit to all API endpoints.
 app.use('/api', generalLimiter);
 
