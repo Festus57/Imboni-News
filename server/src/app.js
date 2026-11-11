@@ -70,10 +70,12 @@ app.get('/api/health', (_req, res) => {
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
-// Reject API requests immediately when MongoDB is unavailable
-// (prevents 10-second hangs on every request when Atlas is unreachable)
+// Reject API requests only when MongoDB is fully disconnected (state 0)
+// State 1 = connected, 2 = connecting, 3 = disconnecting
+// Allow connecting state (2) so requests wait briefly instead of failing
 app.use('/api', (req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
+  const state = mongoose.connection.readyState;
+  if (state === 0) {
     return res.status(503).json({
       success: false,
       message: 'Database unavailable. Please try again shortly.',

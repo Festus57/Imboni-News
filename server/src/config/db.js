@@ -2,10 +2,11 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
+    // Atlas connection with generous timeouts for network latency
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,  // fail faster — 5s max
-      connectTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 30000,  // 30s — Atlas can be slow on first connect
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 60000,
       maxPoolSize: 10,
       minPoolSize: 1,
       retryWrites: true,
