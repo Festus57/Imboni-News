@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/google(.+).html", "destination": "/google$1.html" },
+    { "source": "/robots.txt", "destination": "/robots.txt" },
+    { "source": "/sitemap.xml", "destination": "/sitemap.xml" }
+  ],
+  "routes": [
+    { "src": "/google(\\w+)\\.html", "dest": "/google$1.html" }
+  ]
+}
