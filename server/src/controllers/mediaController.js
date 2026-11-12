@@ -11,7 +11,7 @@ export const uploadMedia = async (req, res, next) => {
   try {
     if (!req.file) return sendError(res, 'No file uploaded.', 400);
 
-    // Build URL — use /uploads/ path served statically
+    // Build URL — use SERVER_URL in production, localhost in dev
     const baseUrl = (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 8000}`).replace(/\/$/, '');
     const fileUrl = `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`;
 

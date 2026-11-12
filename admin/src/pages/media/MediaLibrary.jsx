@@ -136,7 +136,9 @@ export default function MediaLibrary() {
               </label>
             </p>
             <p className="text-xs text-gray-400">Afata: Ifoto, Video, Audio, PDF • Max 100MB</p>
-            <p className="text-xs text-green-600 mt-1 font-medium">✓ Nta API key isdwebwa — files zibitswaho kuri server yawe</p>
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-2">
+              ⚠️ Kuri Render free tier: files zishobora gusibwa iyo server yasubirwemo. Koresha URL yawe (Cloudinary, etc.) mu bindi bikorwa.
+            </p>
           </>
         )}
       </div>

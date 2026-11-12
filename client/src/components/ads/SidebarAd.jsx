@@ -35,8 +35,8 @@ export default function SidebarAd() {
           <img
             src={ad.imageUrl}
             alt={ad.altText || ad.name || 'Itangazo'}
-            className="w-full h-auto block"
-            style={{ objectFit: 'contain', background: '#f9f9f9' }}
+            className="w-full block"
+            style={{ height: '280px', objectFit: 'cover', width: '100%' }}
           />
         ) : (
           <div className="bg-gradient-to-b from-secondary to-accent text-white text-center py-8 px-4 flex flex-col items-center gap-2 rounded-lg">
