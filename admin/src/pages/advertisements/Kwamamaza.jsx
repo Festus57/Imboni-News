@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   FiMail, FiPhone, FiCheck, FiX, FiClock,
   FiImage, FiVideo, FiFileText, FiCalendar,
@@ -359,7 +360,7 @@ export default function Kwamamaza() {
                   <option value="">Hitamo Umushoramari...</option>
                   {advertisers.map((a) => <option key={a._id} value={a._id}>{a.companyName}</option>)}
                 </select>
-                <p className="text-xs text-gray-400 mt-1">Niba umushoramari atabonetse, ongera muri <a href="/ads/advertisers" className="text-primary underline">Abatangaza</a>.</p>
+                <p className="text-xs text-gray-400 mt-1">Niba umushoramari atabonetse, ongera muri <Link to="/ads/advertisers" className="text-primary underline">Abatangaza</Link>.</p>
               </div>
               <div>
                 <label className="label">Izina ry'Itangazo *</label>

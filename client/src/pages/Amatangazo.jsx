@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { formatDistanceToNow } from 'date-fns';
 import { FiX, FiImage, FiVideo, FiFileText, FiExternalLink } from 'react-icons/fi';
@@ -196,7 +197,7 @@ export default function Amatangazo() {
           <p className="font-semibold text-lg text-gray-600">Nta matangazo abonetse ubu</p>
           <p className="text-sm mt-1">
             Subira ejo cyangwa{' '}
-            <a href="/advertise" className="text-primary hover:underline font-medium">tangaza ubu</a>.
+            <Link to="/advertise" className="text-primary hover:underline font-medium">tangaza ubu</Link>.
           </p>
         </div>
       ) : (
@@ -212,10 +213,10 @@ export default function Amatangazo() {
         <div className="mt-12 bg-primary/5 border border-primary/20 rounded-xl p-6 text-center">
           <p className="font-bold text-gray-900 text-lg mb-1">Wifuza Gutangaza kuri Imboni News?</p>
           <p className="text-gray-500 text-sm mb-4">Igera ku basomyi benshi bo mu Rwanda buri munsi.</p>
-          <a href="/advertise"
+          <Link to="/advertise"
             className="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-red-700 transition-colors">
             <FiExternalLink size={15} /> Tangaza Ubu
-          </a>
+          </Link>
         </div>
       )}
 

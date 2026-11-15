@@ -257,7 +257,9 @@ export default function CreateArticle() {
             </div>
           </div>
           <div>
-            <label className="label">Amagambo Nziza (teganyanywa n'akabindo)</label>
+            <label className="label">Ibyiciro by'Inkuru (Tags)
+              <span className="text-xs text-gray-400 font-normal ml-2">— andika amagambo atandukanye n'akabindo (,)</span>
+            </label>
             <input value={form.tags} onChange={(e) => set('tags', e.target.value)} className="input" placeholder="politiki, amatora, kigali" />
           </div>
         </div>

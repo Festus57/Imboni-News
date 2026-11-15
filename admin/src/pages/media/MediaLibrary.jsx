@@ -184,16 +184,23 @@ export default function MediaLibrary() {
                     alt={item.filename}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     loading="lazy"
-                    onError={(e) => { e.target.style.display = 'none'; }}
                   />
                 ) : item.type === 'video' ? (
-                  <video
-                    src={item.url}
-                    className="w-full h-full object-cover"
-                    muted
-                    onMouseEnter={(e) => e.target.play()}
-                    onMouseLeave={(e) => { e.target.pause(); e.target.currentTime = 0; }}
-                  />
+                  item.url?.startsWith('http') ? (
+                    <video
+                      src={item.url}
+                      className="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                      onMouseEnter={(e) => e.target.play().catch(() => {})}
+                      onMouseLeave={(e) => { e.target.pause(); e.target.currentTime = 0; }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      {TYPE_ICONS.video}
+                      <span className="text-xs text-gray-400 uppercase">video</span>
+                    </div>
+                  )
                 ) : (
                   <div className="flex flex-col items-center gap-1">
                     {TYPE_ICONS[item.type] || TYPE_ICONS.document}

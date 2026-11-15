@@ -30,7 +30,7 @@ export default function ReaderDashboard() {
       value: user?.savedArticles?.length ?? 0,
       link: '/saved',
       color: 'bg-red-50 text-primary border border-red-100',
-      desc: 'Inkuru zabikirwa',
+      desc: 'Inkuru zabikitswe',
     },
     {
       icon: <FiUsers size={22} />,
@@ -38,7 +38,7 @@ export default function ReaderDashboard() {
       value: user?.followedJournalists?.length ?? 0,
       link: '/profile',
       color: 'bg-blue-50 text-blue-600 border border-blue-100',
-      desc: 'Abanditsi bakurikiye',
+      desc: 'Abanditsi bakurikiwe',
     },
     {
       icon: <FiBell size={22} />,

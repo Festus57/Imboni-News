@@ -4,16 +4,22 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 
-// @desc   Upload media file (local storage — no Cloudinary needed)
+// Convert file to base64 data URL (for images — survives Render ephemeral FS)
+function fileToBase64(filePath, mimeType) {
+  try {
+    const buffer = fs.readFileSync(filePath);
+    return `data:${mimeType};base64,${buffer.toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
+// @desc   Upload media file (stores images as base64 in MongoDB, files on disk)
 // @route  POST /api/media/upload
 // @access Staff
 export const uploadMedia = async (req, res, next) => {
   try {
     if (!req.file) return sendError(res, 'No file uploaded.', 400);
-
-    // Build URL — use SERVER_URL in production, localhost in dev
-    const baseUrl = (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 8000}`).replace(/\/$/, '');
-    const fileUrl = `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`;
 
     const fileType = req.file.mimetype.startsWith('image/')
       ? 'image'
@@ -23,10 +29,35 @@ export const uploadMedia = async (req, res, next) => {
       ? 'audio'
       : 'document';
 
+    // For images: store as base64 data URL in MongoDB (survives Render redeploy)
+    // For other types: store file URL (may not survive Render redeploy)
+    let fileUrl;
+
+    if (fileType === 'image' && req.file.size < 5 * 1024 * 1024) {
+      // Images < 5MB → base64 in MongoDB
+      const controllerDir = path.dirname(fileURLToPath(import.meta.url));
+      const uploadDir = path.resolve(controllerDir, '../../public/uploads');
+      const filePath = path.join(uploadDir, req.file.filename);
+
+      if (fs.existsSync(filePath)) {
+        fileUrl = fileToBase64(filePath, req.file.mimetype);
+      }
+
+      // If base64 conversion fails, fall back to URL
+      if (!fileUrl) {
+        const baseUrl = (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 8000}`).replace(/\/$/, '');
+        fileUrl = `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`;
+      }
+    } else {
+      // Videos/audio/documents → file URL (too big for base64)
+      const baseUrl = (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 8000}`).replace(/\/$/, '');
+      fileUrl = `${baseUrl}/uploads/${encodeURIComponent(req.file.filename)}`;
+    }
+
     const media = await Media.create({
       filename: req.file.originalname,
       url: fileUrl,
-      publicId: req.file.filename, // local filename
+      publicId: req.file.filename,
       type: fileType,
       mimeType: req.file.mimetype,
       size: req.file.size || 0,

@@ -16,7 +16,7 @@ export default function Footer() {
             <span className="text-xl font-bold text-white">NEWS</span>
           </Link>
           <p className="text-sm leading-relaxed text-gray-400">
-            Amakuru y'Igihugu n'Isi Yose. Amakuru y'ukuri, agatangaza, no kugabana ubumenyi.
+            Amakuru y'Igihugu n'Isi Yose. Amakuru y'ukuri, agatangazwa ku gihe, no kumenya Ibigezweho muri icyogihe.
           </p>
           <div className="flex gap-3 mt-4">
             <a href="#" aria-label="Facebook" className="hover:text-primary"><FiFacebook size={20} /></a>

@@ -166,7 +166,7 @@ export default function AdBanner({ placement = 'top_banner' }) {
         trackImpression(ads[next]._id).catch(() => {});
         return next;
       });
-    }, 60000); // slide every 1 minute
+    }, 20000); // slide every 20 seconds
     return () => clearInterval(timerRef.current);
   }, [ads]);
 

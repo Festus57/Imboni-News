@@ -247,6 +247,18 @@ export default function NewsDetails() {
           {/* Article body — split into 3 visible paragraphs */}
           <ArticleBody content={article.content} />
 
+          {/* Tags */}
+          {article.tags && article.tags.length > 0 && (
+            <div className="flex items-center gap-2 mt-6 flex-wrap">
+              <span className="text-xs text-gray-400 font-medium">Ibyiciro:</span>
+              {article.tags.map((tag, i) => (
+                <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Share & Save */}
           <div className="flex items-center gap-3 mt-8 pt-5 border-t flex-wrap">
             <button

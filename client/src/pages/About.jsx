@@ -20,7 +20,7 @@ export default function About() {
             Isubirano ryacu ni ukugira <strong>Imboni TV</strong>, aho abashyitsi bashobora kureba video z'amakuru, gukurikira gusohora kuri LIVE, no kureba Shorts zihuriweho n'amakuru manini.
           </p>
           <p>
-            Tukora twungukiranyije n'inzobere zo mu Rwanda no hanze, kugirango tuzane amakuru y'ukuri, yigenzuwe, kuri buri muturage.
+            Dukora twungukiranyije n'inzobere zo mu Rwanda no hanze, kugirango tuzane amakuru y'ukuri, yagenzuwe, kuri buri muturage.
           </p>
         </div>
 
