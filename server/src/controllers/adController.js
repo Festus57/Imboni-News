@@ -408,27 +408,50 @@ export const updateCampaign = async (req, res, next) => {
   try {
     const allowed = ['advertiser', 'name', 'package', 'placement', 'imageUrl', 'videoUrl', 'adContent', 'adType', 'destinationUrl', 'altText', 'startDate', 'endDate', 'priceRwf'];
     const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => allowed.includes(key)));
+
+    // Get current campaign first
+    const current = await AdCampaign.findById(req.params.id);
+    if (!current) return sendError(res, 'Campaign not found.', 404);
+
+    // Advertiser validation only if being changed
     if (updates.advertiser) {
       const advertiser = await Advertiser.findOne({ _id: updates.advertiser, isActive: { $ne: false } });
       if (!advertiser) return sendError(res, 'Select an active advertiser.', 400);
-      const current = await AdCampaign.findById(req.params.id).select('advertiser');
-      if (!current) return sendError(res, 'Campaign not found.', 404);
-      if (String(current.advertiser) !== String(updates.advertiser) && await Invoice.exists({ campaign: current._id })) return sendError(res, 'Campaign advertiser cannot be changed after an invoice has been issued.', 409);
+      if (String(current.advertiser) !== String(updates.advertiser) && await Invoice.exists({ campaign: current._id })) {
+        return sendError(res, 'Campaign advertiser cannot be changed after an invoice has been issued.', 409);
+      }
     }
+
+    // Date validation only if dates are being changed
     if (updates.startDate || updates.endDate) {
-      const current = await AdCampaign.findById(req.params.id).select('startDate endDate');
-      if (!current) return sendError(res, 'Campaign not found.', 404);
       const start = updates.startDate ? parseCampaignDate(updates.startDate) : new Date(current.startDate);
       const end = updates.endDate ? parseCampaignDate(updates.endDate, true) : new Date(current.endDate);
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return sendError(res, 'Campaign end date must be after its start date.', 400);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+        return sendError(res, 'Campaign end date must be after its start date.', 400);
+      }
       updates.startDate = start;
       updates.endDate = end;
     }
-    if (updates.priceRwf !== undefined && (!Number.isFinite(Number(updates.priceRwf)) || Number(updates.priceRwf) <= 0)) return sendError(res, 'Campaign price must be greater than zero.', 400);
-    if (updates.destinationUrl) {
-      try { const destination = new URL(updates.destinationUrl); if (!['http:', 'https:'].includes(destination.protocol)) throw new Error(); }
-      catch { return sendError(res, 'A valid HTTP or HTTPS destination URL is required.', 400); }
+
+    // Price validation only if being changed
+    if (updates.priceRwf !== undefined && updates.priceRwf !== '') {
+      const price = Number(updates.priceRwf);
+      if (!Number.isFinite(price) || price <= 0) return sendError(res, 'Campaign price must be greater than zero.', 400);
+      updates.priceRwf = price;
+    } else {
+      delete updates.priceRwf; // don't overwrite with empty
     }
+
+    // destinationUrl validation only if being changed
+    if (updates.destinationUrl) {
+      try {
+        const destination = new URL(updates.destinationUrl);
+        if (!['http:', 'https:'].includes(destination.protocol)) throw new Error();
+      } catch {
+        return sendError(res, 'A valid HTTP or HTTPS destination URL is required.', 400);
+      }
+    }
+
     const campaign = await AdCampaign.findByIdAndUpdate(
       req.params.id,
       { $set: { ...updates, managedBy: req.user._id } },
