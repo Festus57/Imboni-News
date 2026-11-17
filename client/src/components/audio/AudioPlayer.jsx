@@ -44,7 +44,7 @@ function AIVoiceReader({ title, content }) {
 
   useEffect(() => { speedRef.current = speed; }, [speed]);
 
-  // Wait for browser voices
+  // Wait for browser voices — but don't block playback
   useEffect(() => {
     if (!window.speechSynthesis) return;
     const check = () => { if (window.speechSynthesis.getVoices().length > 0) setVoiceReady(true); };
@@ -53,7 +53,7 @@ function AIVoiceReader({ title, content }) {
     return () => window.speechSynthesis.removeEventListener('voiceschanged', check);
   }, []);
 
-  // Female English voice priority
+  // Female English voice priority — returns null if voices not loaded yet (browser will use default)
   const getVoice = useCallback(() => {
     const voices = window.speechSynthesis?.getVoices() || [];
     if (!voices.length) return null;
@@ -70,7 +70,7 @@ function AIVoiceReader({ title, content }) {
       voices.find((v) => v.lang.startsWith('en')) ||
       voices[0]
     );
-  }, [voiceReady]);
+  }, []); // remove voiceReady dependency so it doesn't re-create on every voice change
 
   const handlePlay = useCallback(() => {
     if (!window.speechSynthesis) {
@@ -83,14 +83,18 @@ function AIVoiceReader({ title, content }) {
       setIsPaused(false);
       return;
     }
-    window.speechSynthesis.cancel();
+    // Cancel any existing speech immediately
+    try { window.speechSynthesis.cancel(); } catch { /* ignore */ }
+
     const utterance = new SpeechSynthesisUtterance(fullText);
     utterRef.current  = utterance;
     totalRef.current  = fullText.length;
     utterance.lang    = 'en-US';
     utterance.rate    = speedRef.current;
-    utterance.pitch   = 1.15;  // higher pitch = more feminine
+    utterance.pitch   = 1.15;
     utterance.volume  = muted ? 0 : 1;
+
+    // Set voice if available — if not, browser uses default (still speaks immediately)
     const v = getVoice();
     if (v) utterance.voice = v;
 
@@ -105,9 +109,13 @@ function AIVoiceReader({ title, content }) {
         setIsPlaying(false); setIsPaused(false);
       }
     };
-    window.speechSynthesis.speak(utterance);
-    setIsPlaying(true); setIsPaused(false); setProgress(0);
-  }, [isPaused, fullText, getVoice, muted]);
+
+    // Small delay to ensure cancel completed, then speak immediately
+    setTimeout(() => {
+      try { window.speechSynthesis.speak(utterance); } catch { /* ignore */ }
+      setIsPlaying(true); setIsPaused(false); setProgress(0);
+    }, 50);
+  }, [isPaused, fullText, getVoice, muted]); // remove voiceReady from deps
 
   const handlePause = () => { window.speechSynthesis?.pause(); setIsPlaying(false); setIsPaused(true); };
   const handleStop  = () => { window.speechSynthesis?.cancel(); setIsPlaying(false); setIsPaused(false); setProgress(0); };
