@@ -1,13 +1,28 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import NewsCard from './NewsCard.jsx';
 
 export default function FeaturedNews({ articles }) {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef(null);
+
+  // Auto-rotate hero every 5 seconds
+  useEffect(() => {
+    if (articles?.length <= 1) return;
+    timerRef.current = setInterval(() => {
+      setIdx((i) => (i + 1) % articles.length);
+    }, 5000);
+    return () => clearInterval(timerRef.current);
+  }, [articles?.length]);
+
   if (!articles?.length) return null;
-  const [main, ...rest] = articles;
+  const main = articles[idx] || articles[0];
+  const rest = articles.filter((_, i) => i !== idx);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 relative">
       {/* ── Hero article — fixed height ── */}
       <Link
         to={`/amakuru/${main.slug}`}
@@ -59,7 +74,40 @@ export default function FeaturedNews({ articles }) {
             )}
           </div>
         </div>
+
+        {/* Slide arrows — only if more than 1 featured */}
+        {articles.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setIdx((i) => (i - 1 + articles.length) % articles.length); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full z-10"
+            >
+              <FiChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setIdx((i) => (i + 1) % articles.length); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full z-10"
+            >
+              <FiChevronRight size={18} />
+            </button>
+          </>
+        )}
       </Link>
+
+      {/* ── Slide dots ── */}
+      {articles.length > 1 && (
+        <div className="absolute lg:left-[66%] lg:top-2 left-4 top-2 flex gap-1.5 z-20">
+          {articles.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIdx(i)}
+              className={`rounded-full transition-all ${i === idx ? 'w-5 h-2 bg-primary' : 'w-2 h-2 bg-white/60'}`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* ── Side articles — fixed height, scroll if overflow ── */}
       <div className="flex flex-col gap-3" style={{ maxHeight: 320, overflowY: 'auto' }}>

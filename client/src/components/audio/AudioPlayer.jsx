@@ -100,7 +100,11 @@ function AIVoiceReader({ title, content }) {
       }
     };
     utterance.onend   = () => { setIsPlaying(false); setIsPaused(false); setProgress(100); };
-    utterance.onerror = (e) => { if (e.error !== 'interrupted' && e.error !== 'canceled') { setIsPlaying(false); setIsPaused(false); } };
+    utterance.onerror = (e) => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled' && e.error !== 'synthesis-failed') {
+        setIsPlaying(false); setIsPaused(false);
+      }
+    };
     window.speechSynthesis.speak(utterance);
     setIsPlaying(true); setIsPaused(false); setProgress(0);
   }, [isPaused, fullText, getVoice, muted]);
@@ -115,7 +119,9 @@ function AIVoiceReader({ title, content }) {
     if (isPlaying) { handleStop(); setTimeout(handlePlay, 80); }
   };
 
-  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+  useEffect(() => () => {
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore cleanup errors */ }
+  }, []);
   if (!window.speechSynthesis) return null;
 
   const LABELS = { 0.5: 'Buhoro cyane', 0.75: 'Buhoro', 0.85: 'Bisanzwe', 1: 'Vuba', 1.25: 'Vuba cyane', 1.5: 'Vuba rwose', 2: 'Vuba cyane rwose' };

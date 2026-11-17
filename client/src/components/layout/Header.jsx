@@ -16,7 +16,7 @@ export default function Header() {
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
 
-  // Live suggestions as user types
+  // Live suggestions as user types — search articles AND videos
   useEffect(() => {
     if (!search.trim() || search.length < 2) {
       setSuggestions([]);
@@ -27,8 +27,16 @@ export default function Header() {
     debounceRef.current = setTimeout(async () => {
       setLoadingSugg(true);
       try {
-        const res = await api.get('/articles', { params: { search: search.trim(), limit: 5 } });
-        setSuggestions(res.data.data.articles || []);
+        const [artRes, vidRes] = await Promise.all([
+          api.get('/articles', { params: { search: search.trim(), limit: 5 } }),
+          api.get('/videos', { params: { limit: 3 } }),
+        ]);
+        const arts = (artRes.data.data.articles || []).map((a) => ({ ...a, _type: 'article' }));
+        const vids = (vidRes.data.data.videos || [])
+          .filter((v) => v.title?.toLowerCase().includes(search.trim().toLowerCase()))
+          .slice(0, 3)
+          .map((v) => ({ ...v, _type: 'video', slug: v.slug, title: v.title, featuredImage: v.thumbnailUrl, category: v.category }));
+        setSuggestions([...arts, ...vids]);
         setShowSuggestions(true);
       } catch { setSuggestions([]); }
       finally { setLoadingSugg(false); }
@@ -55,10 +63,14 @@ export default function Header() {
     setSearch('');
   };
 
-  const handleSuggestionClick = (article) => {
+  const handleSuggestionClick = (item) => {
     setShowSuggestions(false);
     setSearch('');
-    navigate(`/amakuru/${article.slug}`);
+    if (item._type === 'video') {
+      navigate(`/imboni-tv/${item.slug}`);
+    } else {
+      navigate(`/amakuru/${item.slug}`);
+    }
   };
 
   const handleClear = () => {
@@ -116,7 +128,7 @@ export default function Header() {
               ) : (
                 <>
                   <div className="px-3 py-2 bg-gray-50 border-b">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Inkuru {suggestions.length} zabonetse</p>
+                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{suggestions.length} bisubizo byabonetse</p>
                   </div>
                   {suggestions.map((a) => (
                     <button
@@ -124,16 +136,23 @@ export default function Header() {
                       onClick={() => handleSuggestionClick(a)}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left transition-colors border-b border-gray-50 last:border-0"
                     >
-                      {a.featuredImage ? (
-                        <img src={a.featuredImage} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                      {a.featuredImage || a.thumbnailUrl ? (
+                        <img src={a.featuredImage || a.thumbnailUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-sm">📰</div>
+                        <div className="w-10 h-10 rounded-lg bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400 text-sm">
+                          {a._type === 'video' ? '🎬' : '📰'}
+                        </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 line-clamp-1">{a.title}</p>
-                        {a.category && (
-                          <p className="text-xs text-primary">{a.category.nameKiny}</p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {a.category && (
+                            <p className="text-xs text-primary">{a.category.nameKiny || a.category.name}</p>
+                          )}
+                          {a._type === 'video' && (
+                            <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">Video</span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   ))}

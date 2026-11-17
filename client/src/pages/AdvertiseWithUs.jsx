@@ -164,6 +164,7 @@ export default function AdvertiseWithUs() {
   const [trackingCode, setTrackingCode] = useState('');
   const [statusResults, setStatusResults] = useState(null);
   const [checking, setChecking]     = useState(false);
+  const [uploading, setUploading]   = useState(false);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -384,15 +385,31 @@ export default function AdvertiseWithUs() {
         {form.adType === 'image' && (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL ya Ifoto *</label>
-              <input value={form.mediaUrl} onChange={(e) => set('mediaUrl', e.target.value)}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ifoto y'Itangazo *</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  setUploading(true);
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  api.post('/media/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+                    .then((res) => {
+                      set('mediaUrl', res.data.data.media.url);
+                      toast.success('Ifoto yashyizweho!');
+                    })
+                    .catch(() => toast.error('Upload byanze. Gerageza nanone.'))
+                    .finally(() => setUploading(false));
+                }}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="https://example.com/itangazo.jpg" />
-              <p className="text-xs text-gray-400 mt-1">Formats: JPG, PNG, WEBP. Shyira ifoto ku rubuga maze ukopere URL.</p>
+              />
+              <p className="text-xs text-gray-400 mt-1">Formats: JPG, PNG, WEBP. Hitamo ifoto mu masaha yawe.</p>
+              {uploading && <p className="text-xs text-primary mt-1">Ohereza...</p>}
             </div>
             {form.mediaUrl && (
-              <img src={form.mediaUrl} alt="Preview" className="w-full rounded-lg object-contain max-h-48 border bg-gray-50"
-                onError={(e) => { e.target.style.display = 'none'; }} />
+              <img src={form.mediaUrl} alt="Preview" className="w-full rounded-lg object-contain max-h-48 border bg-gray-50" />
             )}
           </div>
         )}
@@ -400,17 +417,34 @@ export default function AdvertiseWithUs() {
         {form.adType === 'video' && (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL ya Video *</label>
-              <input value={form.mediaUrl} onChange={(e) => set('mediaUrl', e.target.value)}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Video y'Itangazo *</label>
+              <input
+                type="file"
+                accept="video/*"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  setUploading(true);
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  api.post('/media/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+                    .then((res) => {
+                      set('mediaUrl', res.data.data.media.url);
+                      toast.success('Video yashyizweho!');
+                    })
+                    .catch(() => toast.error('Upload byanze. Gerageza nanone.'))
+                    .finally(() => setUploading(false));
+                }}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="https://youtu.be/... cyangwa https://example.com/video.mp4" />
-              <p className="text-xs text-gray-400 mt-1">YouTube URL cyangwa MP4 itaziguye.</p>
+              />
+              <p className="text-xs text-gray-400 mt-1">MP4, WebM. Hitamo video mu masaha yawe.</p>
+              {uploading && <p className="text-xs text-primary mt-1">Ohereza...</p>}
             </div>
-            {form.mediaUrl && form.mediaUrl.includes('youtube') && (
-              <div className="aspect-video rounded-lg overflow-hidden border">
-                <iframe src={`https://www.youtube.com/embed/${form.mediaUrl.split('v=')[1]?.split('&')[0] || form.mediaUrl.split('youtu.be/')[1]?.split('?')[0]}`}
-                  className="w-full h-full" allowFullScreen title="Preview" />
-              </div>
+            {form.mediaUrl && form.mediaUrl.startsWith('http') && (
+              <video src={form.mediaUrl} controls className="w-full rounded-lg border bg-black max-h-48" />
+            )}
+            {form.mediaUrl && form.mediaUrl.startsWith('data:') && (
+              <video src={form.mediaUrl} controls className="w-full rounded-lg border bg-black max-h-48" />
             )}
           </div>
         )}
