@@ -168,6 +168,30 @@ export default function AdvertiseWithUs() {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
+  const handleUpload = (file, type) => {
+    if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      set('mediaUrl', e.target.result);
+      toast.success(`${type === 'image' ? 'Ifoto' : 'Video'} yashyizweho!`);
+      setUploading(false);
+    };
+    reader.onerror = () => { toast.error('Upload byanze.'); setUploading(false); };
+    reader.readAsDataURL(file);
+  };
+    if (!file) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      set('mediaUrl', e.target.result); // base64 data URL — works immediately, no auth needed
+      toast.success(`${type === 'image' ? 'Ifoto' : 'Video'} yashyizweho!`);
+      setUploading(false);
+    };
+    reader.onerror = () => { toast.error('Upload byanze.'); setUploading(false); };
+    reader.readAsDataURL(file);
+  };
+
   const selectedPkg      = PACKAGES.find((p) => p.id === form.requestedPackage) || PACKAGES[1];
   const selectedDur      = DURATIONS.find((d) => d.id === form.duration) || DURATIONS[1];
   const currentPrice     = selectedPkg.prices[form.duration];
@@ -211,10 +235,10 @@ export default function AdvertiseWithUs() {
 
   const handleCheckStatus = async (e) => {
     e.preventDefault();
-    if (!checkEmail || !checkTrackingCode) return;
+    if (!checkEmail) return;
     setChecking(true);
     try {
-      const res = await api.get('/ads/request-status', { params: { email: checkEmail, trackingCode: checkTrackingCode } });
+      const res = await api.get('/ads/request-status', { params: { email: checkEmail } });
       setStatusResults(res.data.data.requests || []);
     } catch {
       toast.error('Habaye ikosa. Ongera ugerageze.');
@@ -388,25 +412,21 @@ export default function AdvertiseWithUs() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Ifoto y'Itangazo *</label>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) { toast.error('Ifoto igomba kuba munsi ya 2MB.'); return; }
                   setUploading(true);
-                  const fd = new FormData();
-                  fd.append('file', file);
-                  api.post('/media/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-                    .then((res) => {
-                      set('mediaUrl', res.data.data.media.url);
-                      toast.success('Ifoto yashyizweho!');
-                    })
-                    .catch(() => toast.error('Upload byanze. Gerageza nanone.'))
-                    .finally(() => setUploading(false));
+                  const reader = new FileReader();
+                  reader.onload = (ev) => { set('mediaUrl', ev.target.result); setUploading(false); toast.success('Ifoto yashyizweho!'); };
+                  reader.onerror = () => { toast.error('Gufungura ifoto byanze.'); setUploading(false); };
+                  reader.readAsDataURL(file);
                 }}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <p className="text-xs text-gray-400 mt-1">Formats: JPG, PNG, WEBP. Hitamo ifoto mu masaha yawe.</p>
-              {uploading && <p className="text-xs text-primary mt-1">Ohereza...</p>}
+              <p className="text-xs text-gray-400 mt-1">Formats: JPG, PNG, WEBP. Max 2MB.</p>
+              {uploading && <p className="text-xs text-primary mt-1 animate-pulse">Gufungura ifoto...</p>}
             </div>
             {form.mediaUrl && (
               <img src={form.mediaUrl} alt="Preview" className="w-full rounded-lg object-contain max-h-48 border bg-gray-50" />
@@ -417,34 +437,18 @@ export default function AdvertiseWithUs() {
         {form.adType === 'video' && (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Video y'Itangazo *</label>
-              <input
-                type="file"
-                accept="video/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  setUploading(true);
-                  const fd = new FormData();
-                  fd.append('file', file);
-                  api.post('/media/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-                    .then((res) => {
-                      set('mediaUrl', res.data.data.media.url);
-                      toast.success('Video yashyizweho!');
-                    })
-                    .catch(() => toast.error('Upload byanze. Gerageza nanone.'))
-                    .finally(() => setUploading(false));
-                }}
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL ya Video *</label>
+              <input value={form.mediaUrl} onChange={(e) => set('mediaUrl', e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <p className="text-xs text-gray-400 mt-1">MP4, WebM. Hitamo video mu masaha yawe.</p>
-              {uploading && <p className="text-xs text-primary mt-1">Ohereza...</p>}
+                placeholder="https://youtu.be/... cyangwa https://example.com/video.mp4" />
+              <p className="text-xs text-gray-400 mt-1">YouTube URL cyangwa MP4 itaziguye.</p>
             </div>
-            {form.mediaUrl && form.mediaUrl.startsWith('http') && (
-              <video src={form.mediaUrl} controls className="w-full rounded-lg border bg-black max-h-48" />
-            )}
-            {form.mediaUrl && form.mediaUrl.startsWith('data:') && (
-              <video src={form.mediaUrl} controls className="w-full rounded-lg border bg-black max-h-48" />
+            {form.mediaUrl && form.mediaUrl.includes('youtu') && (
+              <div className="aspect-video rounded-lg overflow-hidden border">
+                <iframe
+                  src={`https://www.youtube.com/embed/${form.mediaUrl.split('v=')[1]?.split('&')[0] || form.mediaUrl.split('youtu.be/')[1]?.split('?')[0]}`}
+                  className="w-full h-full" allowFullScreen title="Preview" />
+              </div>
             )}
           </div>
         )}
@@ -560,19 +564,17 @@ export default function AdvertiseWithUs() {
 
       {/* ─── Status Check ─── */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-12 max-w-2xl mx-auto">
-        <h2 className="text-lg font-bold text-gray-900 mb-2">🔍 Reba Status y'Ubusabe Bwawe</h2>
-        <p className="text-sm text-gray-500 mb-4">Andika email wakoresheje na kode wahawe igihe woherezaga ubusabe.</p>
-        <form onSubmit={handleCheckStatus} className="flex flex-col sm:flex-row gap-2">
+        <h2 className="text-lg font-bold text-gray-900 mb-1">🔍 Reba Status y'Ubusabe Bwawe</h2>
+        <p className="text-sm text-gray-500 mb-4">Injiza email yawe hano hasi ubone uko ubusabe bwawe buhagaze.</p>
+        <form onSubmit={handleCheckStatus} className="flex gap-2">
           <div className="relative flex-1">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input type="email" value={checkEmail} onChange={(e) => setCheckEmail(e.target.value)} required
               className="w-full border rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="email@example.com" />
           </div>
-          <input type="text" value={checkTrackingCode} onChange={(e) => setCheckTrackingCode(e.target.value.toUpperCase())} required maxLength={10}
-            className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Kode yo gukurikirana" />
-          <button type="submit" disabled={checking} className="btn-secondary px-5 disabled:opacity-60">
+          <button type="submit" disabled={checking}
+            className="bg-primary hover:bg-red-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm disabled:opacity-60 transition-colors">
             {checking ? '...' : 'Reba'}
           </button>
         </form>

@@ -7,68 +7,46 @@ import toast from 'react-hot-toast';
 import { getArticle, toggleSave, getComments, postComment, deleteComment } from '../services/newsService.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import VideoPlayer from '../components/video/VideoPlayer.jsx';
-import AudioPlayer from '../components/audio/AudioPlayer.jsx';
 import AdBanner from '../components/ads/AdBanner.jsx';
 import SidebarAd from '../components/ads/SidebarAd.jsx';
 import TrendingNews from '../components/news/TrendingNews.jsx';
 import Loader from '../components/common/Loader.jsx';
 import sanitizeHtml from '../utils/sanitizeHtml.js';
 
-// ─── Split raw HTML content into 3 balanced paragraphs ───────────────────────
+// ─── Split raw HTML content into 5 balanced paragraphs ───────────────────────
 function ArticleBody({ content }) {
   if (!content) return null;
-
-  // If content already has <p> tags, extract them and group into 3 sections
   const pTagMatches = content.match(/<p[\s\S]*?<\/p>/gi) || [];
-
-  if (pTagMatches.length >= 3) {
-    // Group existing <p> tags into 3 sections
-    const size = Math.ceil(pTagMatches.length / 3);
-    const groups = [
-      pTagMatches.slice(0, size).join(''),
-      pTagMatches.slice(size, size * 2).join(''),
-      pTagMatches.slice(size * 2).join(''),
-    ].filter(Boolean);
-
+  if (pTagMatches.length >= 5) {
+    const size = Math.ceil(pTagMatches.length / 5);
+    const groups = Array.from({ length: 5 }, (_, i) =>
+      pTagMatches.slice(i * size, (i + 1) * size).join('')
+    ).filter(Boolean);
     return (
       <div className="space-y-6">
         {groups.map((chunk, i) => (
-          <div
-            key={i}
-            className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(chunk) }}
-          />
+          <div key={i} className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(chunk) }} />
         ))}
       </div>
     );
   }
-
-  // Plain text — split on sentence boundaries into 3 groups
   const plain = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   const sentences = plain.match(/[^.!?]+[.!?]+/g) || [plain];
-  const size = Math.ceil(sentences.length / 3);
-  const groups = [
-    sentences.slice(0, size).join(' '),
-    sentences.slice(size, size * 2).join(' '),
-    sentences.slice(size * 2).join(' '),
-  ].filter((g) => g.trim());
-
+  const size = Math.ceil(sentences.length / 5);
+  const groups = Array.from({ length: 5 }, (_, i) =>
+    sentences.slice(i * size, (i + 1) * size).join(' ').trim()
+  ).filter(Boolean);
   if (groups.length > 0) {
     return (
       <div className="space-y-6">
-        {groups.map((g, i) => (
-          <p key={i} className="text-gray-800 leading-relaxed text-base">{g.trim()}</p>
-        ))}
+        {groups.map((g, i) => <p key={i} className="text-gray-800 leading-relaxed text-base">{g}</p>)}
       </div>
     );
   }
-
-  // Fallback — render as-is
   return (
-    <div
-      className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
-    />
+    <div className="prose prose-lg max-w-none text-gray-800 leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />
   );
 }
 
@@ -232,15 +210,6 @@ export default function NewsDetails() {
             </div>
           )}
 
-          {/* Audio player — file audio if provided, otherwise AI voice reader */}
-          <div className="mb-5">
-            <AudioPlayer
-              url={article.audioUrl || null}
-              title={article.title}
-              content={article.content || article.contentKiny}
-            />
-          </div>
-
           {/* Inline ad */}
           <AdBanner placement="article_inline" />
 
@@ -260,22 +229,48 @@ export default function NewsDetails() {
           )}
 
           {/* Share & Save */}
-          <div className="flex items-center gap-3 mt-8 pt-5 border-t flex-wrap">
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors text-sm"
-            >
-              <FiShare2 /> Sangira kuri WhatsApp
-            </button>
-            <button
-              onClick={handleSave}
-              className={`flex items-center gap-2 px-4 py-2 rounded border text-sm transition-colors ${
-                saved ? 'bg-primary text-white border-primary' : 'border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              {saved ? <FiBookmark /> : <FiBookmark />}
-              {saved ? 'Ibitswe' : 'Bika Inkuru'}
-            </button>
+          <div className="mt-8 pt-5 border-t">
+            <p className="text-sm font-semibold text-gray-700 mb-3">📤 Sangira inkuru iyi:</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* WhatsApp */}
+              <a href={`https://api.whatsapp.com/send?text=${encodeURIComponent(article.title + ' ' + window.location.href)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors">
+                <span>💬</span> WhatsApp
+              </a>
+              {/* Facebook */}
+              <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors">
+                <span>📘</span> Facebook
+              </a>
+              {/* Twitter/X */}
+              <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(window.location.href)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-gray-900 hover:bg-black text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors">
+                <span>🐦</span> X (Twitter)
+              </a>
+              {/* Instagram — can only copy link (Instagram has no web share API) */}
+              <button
+                onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link yakopwe — tangaza kuri Instagram!'); }}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition-colors">
+                <span>📸</span> Instagram
+              </button>
+              {/* Copy link */}
+              <button
+                onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link yakopwe!'); }}
+                className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-xs font-semibold transition-colors">
+                <FiShare2 size={13} /> Kopi Link
+              </button>
+              {/* Save */}
+              <button onClick={handleSave}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
+                  saved ? 'bg-primary text-white border-primary' : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                }`}>
+                <FiBookmark size={13} />
+                {saved ? 'Ibitswe' : 'Bika'}
+              </button>
+            </div>
           </div>
 
           {/* Author bio */}

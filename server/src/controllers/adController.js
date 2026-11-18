@@ -118,10 +118,10 @@ export const submitAdRequest = async (req, res, next) => {
 // @access Public
 export const checkRequestStatus = async (req, res, next) => {
   try {
-    const { email, trackingCode } = req.query;
-    if (!email || !trackingCode) return sendError(res, 'Email and tracking code are required.', 400);
+    const { email } = req.query;
+    if (!email) return sendError(res, 'Email is required.', 400);
 
-    const requests = await AdRequest.find({ email: String(email).trim().toLowerCase(), trackingCode: String(trackingCode).trim().toUpperCase() })
+    const requests = await AdRequest.find({ email: String(email).trim().toLowerCase() })
       .select('requestedPackage status createdAt')
       .sort({ createdAt: -1 });
 

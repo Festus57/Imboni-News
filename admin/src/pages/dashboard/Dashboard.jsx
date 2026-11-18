@@ -25,30 +25,38 @@ export default function Dashboard() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-      {/* ── Visitor banner ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gradient-to-r from-secondary to-gray-800 text-white rounded-xl p-4 flex items-center gap-4">
-          <div className="bg-white/10 rounded-full p-3 flex-shrink-0"><FiGlobe size={22} /></div>
+      {/* ── Visitor banner — 4 cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div className="bg-gradient-to-r from-secondary to-gray-800 text-white rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-white/10 rounded-full p-2.5 flex-shrink-0"><FiGlobe size={20} /></div>
           <div>
-            <p className="text-xs text-white/60 uppercase font-semibold">Visitors Today</p>
-            <p className="text-3xl font-extrabold">{(s.siteVisitorsToday || 0).toLocaleString()}</p>
-            <p className="text-xs text-white/50">Unique IP addresses</p>
+            <p className="text-xs text-white/60 uppercase font-semibold">Leo</p>
+            <p className="text-2xl font-extrabold">{(s.siteVisitorsToday || 0).toLocaleString()}</p>
+            <p className="text-xs text-white/50">Visitors ejo</p>
           </div>
         </div>
-        <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-xl p-4 flex items-center gap-4">
-          <div className="bg-white/10 rounded-full p-3 flex-shrink-0"><FiUsers size={22} /></div>
+        <div className="bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-white/10 rounded-full p-2.5 flex-shrink-0"><FiUsers size={20} /></div>
           <div>
-            <p className="text-xs text-white/60 uppercase font-semibold">All Visitors (Total)</p>
-            <p className="text-3xl font-extrabold">{(s.siteVisitorsTotal || 0).toLocaleString()}</p>
-            <p className="text-xs text-white/50">Since server start</p>
+            <p className="text-xs text-white/60 uppercase font-semibold">Visitors Yose</p>
+            <p className="text-2xl font-extrabold">{(s.siteVisitorsTotal || 0).toLocaleString()}</p>
+            <p className="text-xs text-white/50">Kuva hatangira</p>
           </div>
         </div>
-        <div className="bg-gradient-to-r from-green-700 to-green-900 text-white rounded-xl p-4 flex items-center gap-4">
-          <div className="bg-white/10 rounded-full p-3 flex-shrink-0"><FiUserCheck size={22} /></div>
+        <div className="bg-gradient-to-r from-green-700 to-green-900 text-white rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-white/10 rounded-full p-2.5 flex-shrink-0"><FiUserCheck size={20} /></div>
           <div>
-            <p className="text-xs text-white/60 uppercase font-semibold">Registered Readers</p>
-            <p className="text-3xl font-extrabold">{(s.totalReaders || 0).toLocaleString()}</p>
-            <p className="text-xs text-white/50">Have accounts</p>
+            <p className="text-xs text-white/60 uppercase font-semibold">Abasomyi</p>
+            <p className="text-2xl font-extrabold">{(s.totalReaders || 0).toLocaleString()}</p>
+            <p className="text-xs text-white/50">Bafite konti</p>
+          </div>
+        </div>
+        <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white rounded-xl p-4 flex items-center gap-3">
+          <div className="bg-white/10 rounded-full p-2.5 flex-shrink-0"><FiUsers size={20} /></div>
+          <div>
+            <p className="text-xs text-white/60 uppercase font-semibold">Abakoresha Bose</p>
+            <p className="text-2xl font-extrabold">{((s.totalReaders || 0) + (s.totalStaff || 0)).toLocaleString()}</p>
+            <p className="text-xs text-white/50">Readers + Abakozi</p>
           </div>
         </div>
       </div>
