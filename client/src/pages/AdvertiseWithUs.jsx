@@ -180,17 +180,6 @@ export default function AdvertiseWithUs() {
     reader.onerror = () => { toast.error('Upload byanze.'); setUploading(false); };
     reader.readAsDataURL(file);
   };
-    if (!file) return;
-    setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      set('mediaUrl', e.target.result); // base64 data URL — works immediately, no auth needed
-      toast.success(`${type === 'image' ? 'Ifoto' : 'Video'} yashyizweho!`);
-      setUploading(false);
-    };
-    reader.onerror = () => { toast.error('Upload byanze.'); setUploading(false); };
-    reader.readAsDataURL(file);
-  };
 
   const selectedPkg      = PACKAGES.find((p) => p.id === form.requestedPackage) || PACKAGES[1];
   const selectedDur      = DURATIONS.find((d) => d.id === form.duration) || DURATIONS[1];
